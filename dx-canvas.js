@@ -16,24 +16,21 @@ const dx_canvas = {
         this.canvas_obj.addEventListener('click', this.onMouseClick.bind(this), false);
         this.canvas_obj.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
         this.canvas_obj.addEventListener('contextmenu', this.onMouseRightClick.bind(this), false);
-        return this.getContext();
     },
     setContext() {
         if (this.canvas_obj === null) {
             throw new Error("Canvas not initialized");
         }
-        this.context_obj =  this.canvas_obj.getContext('2d');
+        this.context_obj = this.canvas_obj.getContext('2d');
     },
     getContext() {
         this.setContext();
         return this.context_obj;
     },
     validateEvent(event_obj = null) {
+        this.setContext();
         if (event_obj === null) {
             throw new Error("Invalid event provided");
-        }
-        if (this.canvas_obj === null) {
-            throw new Error("Canvas not initialized");
         }
     },
     getMousePosition(event_obj = null) {
@@ -102,10 +99,10 @@ const dx_canvas = {
         console.log("Mouse right clicked at: "+JSON.stringify(mousePos));
     },
     testFunction(message) {
-        const context = this.getContext();
-        context.clearRect(0, 0, this.canvas_obj.width, this.canvas_obj.height);
-        context.font = '18pt Calibri';
-        context.fillStyle = 'black';
-        context.fillText(message, 10, this.canvas_obj.height / 2);
+        this.setContext();
+        this.context_obj.clearRect(0, 0, this.canvas_obj.width, this.canvas_obj.height);
+        this.context_obj.font = '24pt Arial';
+        this.context_obj.fillStyle = 'black';
+        this.context_obj.fillText(message, 10, this.canvas_obj.height / 2);
     }
 }
