@@ -6,13 +6,14 @@
 const dx_canvas = {
     canvas_obj: null,
     context_obj: null,
-    objects:[],
+    objects:{},
     active_object:null,
     is_mouse_down: false,
     drag_start:{x:0,y:0},
     drag_end:{x:0,y:0},
-    zoom_factor:0.02,
     drag_translate_factor:1.3,
+    is_dragging:false,
+    zoom_factor:0.02,
     initCanvas(element_id) {
         this.canvas_obj = document.getElementById(element_id);
         this.setContext();
@@ -29,9 +30,11 @@ const dx_canvas = {
         this.canvas_obj.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
         this.canvas_obj.addEventListener('contextmenu', this.onMouseRightClick.bind(this), false);
         this.canvas_obj.addEventListener('wheel', this.onMouseScroll.bind(this), false);
-        this.registerObject(new DivbloxBaseCanvasObject(null,{x:20,y:20}));
+        this.registerObject(new DivbloxBaseCanvasObject(null,{x:20,y:20},{is_draggable:true}));
         this.registerObject(new DivbloxBaseCanvasObject(null,{x:140,y:40}));
-        this.registerObject(new DivbloxBaseCanvasObject(null,{x:200,y:400},{fill_colour:"blue"}));
+        this.registerObject(new DivbloxBaseCanvasObject(null,{x:200,y:400},
+            {fill_colour:"#fe765d",
+                dimensions: {width:100,height:200}}));
         window.requestAnimationFrame(this.update.bind(this));
     },
     setContext() {
@@ -45,8 +48,12 @@ const dx_canvas = {
         return this.context_obj;
     },
     drawCanvas() {
+        this.context_obj.save();
+        this.context_obj.setTransform(1,0,0,1,0,0);
         this.context_obj.clearRect(0,0,this.canvas_obj.width,this.canvas_obj.height);
-        for (const object of this.objects) {
+        this.context_obj.restore();
+        for (const object_id of Object.keys(this.objects)) {
+            const object = this.objects[object_id];
             object.drawObject(this.context_obj);
         }
     },
@@ -61,7 +68,7 @@ const dx_canvas = {
         if (object === null) {
             return;
         }
-        this.objects.push(object);
+        this.objects[object.getId()] = object;
     },
     validateEvent(event_obj = null) {
         this.setContext();
@@ -129,7 +136,7 @@ const dx_canvas = {
         this.validateEvent(event_obj);
         const mousePos = this.getMousePosition(event_obj);
         this.is_mouse_down = false;
-        this.drag_start = {x:0,y:0};
+        this.is_dragging = false;
         console.log("Drag end: "+JSON.stringify(this.drag_end));
         this.testFunction('Mouse up position: ' + mousePos.x + ', ' + mousePos.y);
     },
@@ -137,7 +144,13 @@ const dx_canvas = {
         this.validateEvent(event_obj);
         const mousePos = this.getMousePosition(event_obj);
         console.log("Mouse clicked at: "+JSON.stringify(mousePos));
-        this.setActiveObject({x:mousePos.x,y:mousePos.y},true);
+        console.log("Drag start: "+JSON.stringify(this.drag_start));
+        if ((this.drag_start.x !== 0) && (this.drag_start.y !== 0)) {
+            this.drag_start = {x:0,y:0};
+            this.setActiveObject({x:-1,y:-1},false);
+        } else {
+            this.setActiveObject({x:mousePos.x,y:mousePos.y},true);
+        }
     },
     onMouseDoubleClick(event_obj = null) {
         this.validateEvent(event_obj);
@@ -158,13 +171,15 @@ const dx_canvas = {
         this.zoomCanvas(event_obj.deltaY/Math.abs(event_obj.deltaY));
     },
     setActiveObject(mouse_down_position = {x:0,y:0},trigger_click = false) {
+        console.log("Objects: "+JSON.stringify(this.objects));
         if ((this.active_object !== null) && this.is_mouse_down) {
             // This means we are dragging and we don't want to change the active object
             console.log("Not setting active object");
             return;
         }
         this.active_object = null;
-        for (const object of this.objects) {
+        for (const object_id of Object.keys(this.objects)) {
+            const object = this.objects[object_id];
             if ((object.getBoundingRectangle().x1 <= mouse_down_position.x) &&
                 (object.getBoundingRectangle().x2 >= mouse_down_position.x) &&
                 (object.getBoundingRectangle().y1 <= mouse_down_position.y) &&
@@ -186,8 +201,16 @@ const dx_canvas = {
             const translate_y = this.drag_translate_factor*(this.drag_end.y - this.drag_start.y) / Math.abs(this.drag_end.y - this.drag_start.y);
             this.context_obj.translate(translate_x,translate_y);
         } else {
-            console.log("Dragging object: "+JSON.stringify(this.active_object));
+            if (this.active_object.is_draggable) {
+                if (!this.is_dragging) {
+                    this.active_object.updateDeltas({x:this.drag_start.x,y:this.drag_start.y});
+                }
+                this.active_object.reposition({x:this.drag_end.x,y:this.drag_end.y});
+                this.registerObject(this.active_object);
+                console.log("Dragging object: "+JSON.stringify(this.active_object));
+            }
         }
+        this.is_dragging = true;
     },
     zoomCanvas(direction = -1) {
         let zoom_factor = 1-this.zoom_factor;
@@ -206,7 +229,7 @@ class DivbloxBaseCanvasObject {
     constructor(object_id = null,
                 draw_start_coords = {x:0,y:0},
                 additional_options =
-                    {draggable:false,
+                    {is_draggable:false,
                     fill_colour:"#fefefe",
                     dimensions:
                         {width:100,height:100}}) {
@@ -216,6 +239,8 @@ class DivbloxBaseCanvasObject {
         }
         this.x = draw_start_coords.x;
         this.y = draw_start_coords.y;
+        this.x_delta = this.x;
+        this.y_delta = this.y;
         this.width = 100;
         this.height = 100;
         if (typeof additional_options["dimensions"] !== "undefined") {
@@ -227,9 +252,9 @@ class DivbloxBaseCanvasObject {
         if (typeof additional_options["fill_colour"] !== "undefined") {
             this.fill_colour = additional_options["fill_colour"];
         }
-        this.draggable = false;
-        if (typeof additional_options["draggable"] !== "undefined") {
-            this.draggable = additional_options["draggable"];
+        this.is_draggable = false;
+        if (typeof additional_options["is_draggable"] !== "undefined") {
+            this.is_draggable = additional_options["is_draggable"];
         }
     }
     getId() {
@@ -250,5 +275,14 @@ class DivbloxBaseCanvasObject {
     }
     onClick() {
         console.log("Object "+this.getId()+" clicked");
+    }
+    updateDeltas(reference_coords = {x:0,y:0}) {
+        this.x_delta = reference_coords.x - this.x;
+        this.y_delta = reference_coords.y - this.y;
+    }
+    reposition(coords = {x:0,y:0}) {
+        this.x = coords.x - this.x_delta;
+        this.y = coords.y - this.y_delta;
+        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
     }
 }
