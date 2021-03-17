@@ -7,6 +7,7 @@ const dx_canvas = {
     canvas_obj: null,
     context_obj: null,
     objects:[],
+    active_object:null,
     is_mouse_down: false,
     drag_start:{x:0,y:0},
     drag_end:{x:0,y:0},
@@ -30,7 +31,7 @@ const dx_canvas = {
         this.canvas_obj.addEventListener('wheel', this.onMouseScroll.bind(this), false);
         this.registerObject(new DivbloxBaseCanvasObject(null,{x:20,y:20}));
         this.registerObject(new DivbloxBaseCanvasObject(null,{x:140,y:40}));
-        this.registerObject(new DivbloxBaseCanvasObject(null,{x:200,y:400},{width:20,height:20}));
+        this.registerObject(new DivbloxBaseCanvasObject(null,{x:200,y:400},{fill_colour:"blue"}));
         window.requestAnimationFrame(this.update.bind(this));
     },
     setContext() {
@@ -71,9 +72,15 @@ const dx_canvas = {
     getMousePosition(event_obj = null) {
         this.validateEvent(event_obj);
         const rect = this.canvas_obj.getBoundingClientRect();
+        const transform = this.context_obj.getTransform();
+        // This doesn't deal with skew
+        const canvas_x = (event_obj.clientX - rect.left - transform.e) / transform.a;
+        const canvas_y = (event_obj.clientY - rect.top - transform.f) / transform.d;
         return {
-            x: event_obj.clientX - rect.left,
-            y: event_obj.clientY - rect.top
+            /*x: event_obj.clientX - rect.left,
+            y: event_obj.clientY - rect.top*/
+            x:canvas_x,
+            y:canvas_y
         };
     },
     onMouseMove(event_obj = null) {
@@ -82,6 +89,7 @@ const dx_canvas = {
         if (this.is_mouse_down) {
             this.drag_end.x = mousePos.x;
             this.drag_end.y = mousePos.y;
+            this.updateDrag();
         } else {
             this.testFunction('Mouse moved position: ' + mousePos.x + ',' + mousePos.y);
         }
@@ -114,7 +122,7 @@ const dx_canvas = {
         this.drag_end = {x:0,y:0};
         this.drag_start.x = mousePos.x;
         this.drag_start.y = mousePos.y;
-        console.log("Drag start: "+JSON.stringify(this.drag_start));
+        this.setActiveObject({x:mousePos.x,y:mousePos.y});
         this.testFunction('Mouse down position: ' + mousePos.x + ', ' + mousePos.y);
     },
     onMouseUp(event_obj = null) {
@@ -129,16 +137,7 @@ const dx_canvas = {
         this.validateEvent(event_obj);
         const mousePos = this.getMousePosition(event_obj);
         console.log("Mouse clicked at: "+JSON.stringify(mousePos));
-        for (const object of this.objects) {
-            console.log("Checking obj "+object.getId());
-            if ((object.getBoundingRectangle().x1 <= mousePos.x) &&
-                (object.getBoundingRectangle().x2 >= mousePos.x) &&
-                (object.getBoundingRectangle().y1 <= mousePos.y) &&
-                (object.getBoundingRectangle().y2 >= mousePos.y)) {
-                object.onClick();
-                break;
-            }
-        }
+        this.setActiveObject({x:mousePos.x,y:mousePos.y},true);
     },
     onMouseDoubleClick(event_obj = null) {
         this.validateEvent(event_obj);
@@ -158,13 +157,37 @@ const dx_canvas = {
         const mousePos = this.getMousePosition(event_obj);
         this.zoomCanvas(event_obj.deltaY/Math.abs(event_obj.deltaY));
     },
+    setActiveObject(mouse_down_position = {x:0,y:0},trigger_click = false) {
+        if ((this.active_object !== null) && this.is_mouse_down) {
+            // This means we are dragging and we don't want to change the active object
+            console.log("Not setting active object");
+            return;
+        }
+        this.active_object = null;
+        for (const object of this.objects) {
+            if ((object.getBoundingRectangle().x1 <= mouse_down_position.x) &&
+                (object.getBoundingRectangle().x2 >= mouse_down_position.x) &&
+                (object.getBoundingRectangle().y1 <= mouse_down_position.y) &&
+                (object.getBoundingRectangle().y2 >= mouse_down_position.y)) {
+                this.active_object = object;
+                if (trigger_click) {
+                    this.active_object.onClick();
+                }
+                break;
+            }
+        }
+        console.log("Active object: "+JSON.stringify(this.active_object));
+    },
 
-    dragTo() {
+    updateDrag() {
         this.testFunction('Dragging from: '+JSON.stringify(this.drag_start)+' to '+JSON.stringify(this.drag_end));
-
-        const translate_x = this.drag_translate_factor*(this.drag_end.x - this.drag_start.x) / Math.abs(this.drag_end.x - this.drag_start.x);
-        const translate_y = this.drag_translate_factor*(this.drag_end.y - this.drag_start.y) / Math.abs(this.drag_end.y - this.drag_start.y);
-        this.context_obj.translate(translate_x,translate_y);
+        if (this.active_object === null) {
+            const translate_x = this.drag_translate_factor*(this.drag_end.x - this.drag_start.x) / Math.abs(this.drag_end.x - this.drag_start.x);
+            const translate_y = this.drag_translate_factor*(this.drag_end.y - this.drag_start.y) / Math.abs(this.drag_end.y - this.drag_start.y);
+            this.context_obj.translate(translate_x,translate_y);
+        } else {
+            console.log("Dragging object: "+JSON.stringify(this.active_object));
+        }
     },
     zoomCanvas(direction = -1) {
         let zoom_factor = 1-this.zoom_factor;
@@ -182,17 +205,32 @@ const dx_canvas = {
 class DivbloxBaseCanvasObject {
     constructor(object_id = null,
                 draw_start_coords = {x:0,y:0},
-                dimensions = {width:100,height:100}) {
+                additional_options =
+                    {draggable:false,
+                    fill_colour:"#fefefe",
+                    dimensions:
+                        {width:100,height:100}}) {
         this.id = Math.random().toString(20).substr(2, 6);
         if (object_id !== null) {
             this.id = object_id;
         }
         this.x = draw_start_coords.x;
         this.y = draw_start_coords.y;
-        this.width = dimensions.width;
-        this.height = dimensions.height;
-        this.fill_colour = '#000000';
+        this.width = 100;
+        this.height = 100;
+        if (typeof additional_options["dimensions"] !== "undefined") {
+            this.width = additional_options["dimensions"]["width"];
+            this.height = additional_options["dimensions"]["height"];
+        }
         this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
+        this.fill_colour = '#000000';
+        if (typeof additional_options["fill_colour"] !== "undefined") {
+            this.fill_colour = additional_options["fill_colour"];
+        }
+        this.draggable = false;
+        if (typeof additional_options["draggable"] !== "undefined") {
+            this.draggable = additional_options["draggable"];
+        }
     }
     getId() {
         return this.id;
@@ -205,8 +243,10 @@ class DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
+        context_obj.save();
         context_obj.fillColor = this.fill_colour;
         context_obj.fillRect(this.x,this.y,this.width,this.height);
+        context_obj.restore();
     }
     onClick() {
         console.log("Object "+this.getId()+" clicked");
