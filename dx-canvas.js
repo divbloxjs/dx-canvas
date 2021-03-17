@@ -11,7 +11,7 @@ const dx_canvas = {
     is_mouse_down: false,
     drag_start:{x:0,y:0},
     drag_end:{x:0,y:0},
-    drag_translate_factor:1.3,
+    drag_translate_factor:1,
     is_dragging:false,
     zoom_factor:0.02,
     initCanvas(element_id) {
@@ -33,7 +33,7 @@ const dx_canvas = {
         this.registerObject(new DivbloxBaseCanvasObject(null,{x:20,y:20},{is_draggable:true}));
         this.registerObject(new DivbloxBaseCanvasObject(null,{x:140,y:40}));
         this.registerObject(new DivbloxBaseCanvasObject(null,{x:200,y:400},
-            {fill_colour:"#fe765d",
+            {is_draggable:true,fill_colour:"#fe765d",
                 dimensions: {width:100,height:200}}));
         window.requestAnimationFrame(this.update.bind(this));
     },
@@ -84,90 +84,81 @@ const dx_canvas = {
         const canvas_x = (event_obj.clientX - rect.left - transform.e) / transform.a;
         const canvas_y = (event_obj.clientY - rect.top - transform.f) / transform.d;
         return {
-            /*x: event_obj.clientX - rect.left,
-            y: event_obj.clientY - rect.top*/
-            x:canvas_x,
-            y:canvas_y
+            x: event_obj.clientX - rect.left,
+            y: event_obj.clientY - rect.top,
+            cx:canvas_x,
+            cy:canvas_y
         };
     },
     onMouseMove(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
+        const mouse = this.getMousePosition(event_obj);
         if (this.is_mouse_down) {
-            this.drag_end.x = mousePos.x;
-            this.drag_end.y = mousePos.y;
+            this.drag_end.x = mouse.cx;
+            this.drag_end.y = mouse.cy;
             this.updateDrag();
-        } else {
-            this.testFunction('Mouse moved position: ' + mousePos.x + ',' + mousePos.y);
         }
-
     },
     onMouseEnter(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse entered at: "+JSON.stringify(mousePos));
+        const mouse = this.getMousePosition(event_obj);
     },
     onMouseLeave(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse leave at: "+JSON.stringify(mousePos));
+        const mouse = this.getMousePosition(event_obj);
     },
     onMouseOver(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse over at: "+JSON.stringify(mousePos));
+        const mouse = this.getMousePosition(event_obj);
     },
     onMouseOut(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse out at: "+JSON.stringify(mousePos));
+        const mouse = this.getMousePosition(event_obj);
     },
     onMouseDown(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
+        const mouse = this.getMousePosition(event_obj);
         this.is_mouse_down = true;
         this.drag_end = {x:0,y:0};
-        this.drag_start.x = mousePos.x;
-        this.drag_start.y = mousePos.y;
-        this.setActiveObject({x:mousePos.x,y:mousePos.y});
-        this.testFunction('Mouse down position: ' + mousePos.x + ', ' + mousePos.y);
+        this.drag_start.x = mouse.cx;
+        this.drag_start.y = mouse.cy;
+        this.setActiveObject({x:mouse.cx,y:mouse.cy});
     },
     onMouseUp(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
+        const mouse = this.getMousePosition(event_obj);
         this.is_mouse_down = false;
+        if (!this.is_dragging) {
+            // This was a click
+            this.setActiveObject({x:mouse.cx,y:mouse.cy},true);
+        } else {
+            this.setActiveObject({x:-1,y:-1});
+        }
         this.is_dragging = false;
-        console.log("Drag end: "+JSON.stringify(this.drag_end));
-        this.testFunction('Mouse up position: ' + mousePos.x + ', ' + mousePos.y);
+        this.testFunction('Mouse up position: ' + mouse.x + ', ' + mouse.y);
     },
     onMouseClick(event_obj = null) {
-        this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse clicked at: "+JSON.stringify(mousePos));
-        console.log("Drag start: "+JSON.stringify(this.drag_start));
-        if ((this.drag_start.x !== 0) && (this.drag_start.y !== 0)) {
-            this.drag_start = {x:0,y:0};
-            this.setActiveObject({x:-1,y:-1},false);
-        } else {
-            this.setActiveObject({x:mousePos.x,y:mousePos.y},true);
-        }
+        // We handle this with mouseup
+        return;
     },
     onMouseDoubleClick(event_obj = null) {
         this.validateEvent(event_obj);
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse double clicked at: "+JSON.stringify(mousePos));
+        const mouse = this.getMousePosition(event_obj);
+        if (this.active_object !== null) {
+            this.active_object.onDoubleClick();
+        }
     },
     onMouseRightClick(event_obj = null) {
         this.validateEvent(event_obj);
         event_obj.preventDefault();
-        const mousePos = this.getMousePosition(event_obj);
-        console.log("Mouse right clicked at: "+JSON.stringify(mousePos));
+        const mouse = this.getMousePosition(event_obj);
+        console.log("Mouse right clicked at: "+JSON.stringify(mouse));
         this.resetCanvas();
     },
     onMouseScroll(event_obj = null) {
         this.validateEvent(event_obj);
         event_obj.preventDefault();
-        const mousePos = this.getMousePosition(event_obj);
+        const mouse = this.getMousePosition(event_obj);
         this.zoomCanvas(event_obj.deltaY/Math.abs(event_obj.deltaY));
     },
     setActiveObject(mouse_down_position = {x:0,y:0},trigger_click = false) {
@@ -196,9 +187,10 @@ const dx_canvas = {
 
     updateDrag() {
         this.testFunction('Dragging from: '+JSON.stringify(this.drag_start)+' to '+JSON.stringify(this.drag_end));
+        const tx = this.context_obj.getTransform();
         if (this.active_object === null) {
-            const translate_x = this.drag_translate_factor*(this.drag_end.x - this.drag_start.x) / Math.abs(this.drag_end.x - this.drag_start.x);
-            const translate_y = this.drag_translate_factor*(this.drag_end.y - this.drag_start.y) / Math.abs(this.drag_end.y - this.drag_start.y);
+            const translate_x = this.drag_translate_factor*(this.drag_end.x - this.drag_start.x);
+            const translate_y = this.drag_translate_factor*(this.drag_end.y - this.drag_start.y);
             this.context_obj.translate(translate_x,translate_y);
         } else {
             if (this.active_object.is_draggable) {
@@ -211,6 +203,8 @@ const dx_canvas = {
             }
         }
         this.is_dragging = true;
+
+        console.log("TF: "+JSON.stringify(tx));
     },
     zoomCanvas(direction = -1) {
         let zoom_factor = 1-this.zoom_factor;
@@ -230,7 +224,7 @@ class DivbloxBaseCanvasObject {
                 draw_start_coords = {x:0,y:0},
                 additional_options =
                     {is_draggable:false,
-                    fill_colour:"#fefefe",
+                    fill_colour:"#000000",
                     dimensions:
                         {width:100,height:100}}) {
         this.id = Math.random().toString(20).substr(2, 6);
@@ -250,6 +244,7 @@ class DivbloxBaseCanvasObject {
         this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
         this.fill_colour = '#000000';
         if (typeof additional_options["fill_colour"] !== "undefined") {
+            console.log("Fill colour set to: "+additional_options["fill_colour"]);
             this.fill_colour = additional_options["fill_colour"];
         }
         this.is_draggable = false;
@@ -269,12 +264,15 @@ class DivbloxBaseCanvasObject {
             throw new Error("No context provided for object");
         }
         context_obj.save();
-        context_obj.fillColor = this.fill_colour;
+        context_obj.fillStyle = this.fill_colour;
         context_obj.fillRect(this.x,this.y,this.width,this.height);
         context_obj.restore();
     }
     onClick() {
         console.log("Object "+this.getId()+" clicked");
+    }
+    onDoubleClick() {
+        console.log("Object "+this.getId()+" double clicked");
     }
     updateDeltas(reference_coords = {x:0,y:0}) {
         this.x_delta = reference_coords.x - this.x;
