@@ -1,8 +1,11 @@
 //TODO:
-// - Figure out object definition and how to place on canvas. A rectangle with components inside. How
-// do they move or expand together and the items linked to them etc. An object needs to be either draggable or not. For ideco,
-// it must not be draggable. Divblox modeller it must be draggable
-// - Pan and zoom of the canvas.
+// Update the init function to take a json object as input. This json represents the entire canvas with all its objects
+// Add various object types:
+// - Basic circle with fill and text and perhaps icon
+// - Basic rectangle with fill and text and perhaps icon
+// - Connector with start and end point. This one needs to update as a draggable object that it's connected to is dragged
+// - Rectangle with the option to expand. When it expands we need to adjust all objects to its left and bottom with the delta
+
 const dx_canvas = {
     canvas_obj: null,
     context_obj: null,
@@ -14,7 +17,8 @@ const dx_canvas = {
     drag_translate_factor:1,
     is_dragging:false,
     zoom_factor:0.02,
-    initCanvas(element_id) {
+    object_mapping:{"DivbloxBaseCanvasObject":DivbloxBaseCanvasObject},
+    initCanvas(element_id = "dxCanvas",objects = []) {
         this.canvas_obj = document.getElementById(element_id);
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
@@ -30,12 +34,21 @@ const dx_canvas = {
         this.canvas_obj.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
         this.canvas_obj.addEventListener('contextmenu', this.onMouseRightClick.bind(this), false);
         this.canvas_obj.addEventListener('wheel', this.onMouseScroll.bind(this), false);
-        this.registerObject(new DivbloxBaseCanvasObject(null,{x:20,y:20},{is_draggable:true}));
-        this.registerObject(new DivbloxBaseCanvasObject(null,{x:140,y:40}));
-        this.registerObject(new DivbloxBaseCanvasObject(null,{x:200,y:400},
+        /*this.registerObject(new DivbloxBaseCanvasObject({x:20,y:20},{is_draggable:true}));
+        this.registerObject(new DivbloxBaseCanvasObject({x:140,y:40}));
+        this.registerObject(new DivbloxBaseCanvasObject({x:200,y:400},
             {is_draggable:true,fill_colour:"#fe765d",
-                dimensions: {width:100,height:200}}));
+                dimensions: {width:100,height:200}}));*/
+        for (const object of objects) {
+            this.registerObject(this.initObjectFromJson(object));
+        }
         window.requestAnimationFrame(this.update.bind(this));
+    },
+    initObjectFromJson(json_obj = {}) {
+        if (typeof json_obj["type"] === "undefined") {
+            throw new Error("No object type provided");
+        }
+        return new this.object_mapping[json_obj["type"]]({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
     },
     setContext() {
         if (this.canvas_obj === null) {
@@ -220,17 +233,14 @@ const dx_canvas = {
 }
 
 class DivbloxBaseCanvasObject {
-    constructor(object_id = null,
-                draw_start_coords = {x:0,y:0},
+    constructor(draw_start_coords = {x:0,y:0},
                 additional_options =
                     {is_draggable:false,
                     fill_colour:"#000000",
                     dimensions:
-                        {width:100,height:100}}) {
+                        {width:100,height:100}},
+                object_data = {}) {
         this.id = Math.random().toString(20).substr(2, 6);
-        if (object_id !== null) {
-            this.id = object_id;
-        }
         this.x = draw_start_coords.x;
         this.y = draw_start_coords.y;
         this.x_delta = this.x;
@@ -251,6 +261,7 @@ class DivbloxBaseCanvasObject {
         if (typeof additional_options["is_draggable"] !== "undefined") {
             this.is_draggable = additional_options["is_draggable"];
         }
+        this.object_data = object_data;
     }
     getId() {
         return this.id;

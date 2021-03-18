@@ -24,7 +24,13 @@
 </div>
 <script src="dx-canvas.js"></script>
 <script>
-    dx_canvas.initCanvas('dxCanvas');
+    async function initCanvas() {
+        const response = await fetch('http://localhost/GitHub/divblox-canvas/test.json');
+        const data_json = await response.json();
+        console.log("Loaded: "+JSON.stringify(data_json));
+        dx_canvas.initCanvas('dxCanvas',data_json);
+    }
+    initCanvas();
 </script>
 </body>
 </html>
