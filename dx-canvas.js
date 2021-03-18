@@ -1,5 +1,4 @@
 //TODO:
-// Update the init function to take a json object as input. This json represents the entire canvas with all its objects
 // Add various object types:
 // - Basic circle with fill and text and perhaps icon
 // - Basic rectangle with fill and text and perhaps icon
@@ -17,7 +16,6 @@ const dx_canvas = {
     drag_translate_factor:1,
     is_dragging:false,
     zoom_factor:0.02,
-    object_mapping:{"DivbloxBaseCanvasObject":DivbloxBaseCanvasObject},
     initCanvas(element_id = "dxCanvas",objects = []) {
         this.canvas_obj = document.getElementById(element_id);
         this.setContext();
@@ -48,7 +46,12 @@ const dx_canvas = {
         if (typeof json_obj["type"] === "undefined") {
             throw new Error("No object type provided");
         }
-        return new this.object_mapping[json_obj["type"]]({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+        switch(json_obj["type"]) {
+            case 'DivbloxBaseCanvasObject': return new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'NodeCanvasObject': return new NodeCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+                //TODO: When new object types are defined, implement their instantiation here.
+            default: throw new Error("Invalid object type provided");
+        }
     },
     setContext() {
         if (this.canvas_obj === null) {
@@ -148,11 +151,9 @@ const dx_canvas = {
             this.setActiveObject({x:-1,y:-1});
         }
         this.is_dragging = false;
-        this.testFunction('Mouse up position: ' + mouse.x + ', ' + mouse.y);
     },
     onMouseClick(event_obj = null) {
         // We handle this with mouseup
-        return;
     },
     onMouseDoubleClick(event_obj = null) {
         this.validateEvent(event_obj);
@@ -197,9 +198,7 @@ const dx_canvas = {
         }
         console.log("Active object: "+JSON.stringify(this.active_object));
     },
-
     updateDrag() {
-        this.testFunction('Dragging from: '+JSON.stringify(this.drag_start)+' to '+JSON.stringify(this.drag_end));
         const tx = this.context_obj.getTransform();
         if (this.active_object === null) {
             const translate_x = this.drag_translate_factor*(this.drag_end.x - this.drag_start.x);
@@ -216,8 +215,6 @@ const dx_canvas = {
             }
         }
         this.is_dragging = true;
-
-        console.log("TF: "+JSON.stringify(tx));
     },
     zoomCanvas(direction = -1) {
         let zoom_factor = 1-this.zoom_factor;
@@ -225,20 +222,17 @@ const dx_canvas = {
             zoom_factor = 1+this.zoom_factor;
         }
         this.context_obj.scale(zoom_factor,zoom_factor);
-    },
-
-    testFunction(message) {
-        console.log(message);
     }
 }
-
+//#region Object types
 class DivbloxBaseCanvasObject {
     constructor(draw_start_coords = {x:0,y:0},
                 additional_options =
                     {is_draggable:false,
-                    fill_colour:"#000000",
-                    dimensions:
-                        {width:100,height:100}},
+                        fill_colour:"#000000",
+                        dimensions:
+                            {width:100,height:100}
+                    },
                 object_data = {}) {
         this.id = Math.random().toString(20).substr(2, 6);
         this.x = draw_start_coords.x;
@@ -247,21 +241,34 @@ class DivbloxBaseCanvasObject {
         this.y_delta = this.y;
         this.width = 100;
         this.height = 100;
-        if (typeof additional_options["dimensions"] !== "undefined") {
-            this.width = additional_options["dimensions"]["width"];
-            this.height = additional_options["dimensions"]["height"];
-        }
-        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
-        this.fill_colour = '#000000';
-        if (typeof additional_options["fill_colour"] !== "undefined") {
-            console.log("Fill colour set to: "+additional_options["fill_colour"]);
-            this.fill_colour = additional_options["fill_colour"];
-        }
-        this.is_draggable = false;
-        if (typeof additional_options["is_draggable"] !== "undefined") {
-            this.is_draggable = additional_options["is_draggable"];
+        this.additional_options = {};
+        if (typeof additional_options !== "undefined") {
+            this.additional_options = additional_options;
         }
         this.object_data = object_data;
+        this.initializeObject();
+    }
+    initializeObject() {
+        if (typeof this.additional_options["dimensions"] !== "undefined") {
+            if (this.additional_options["dimensions"]["width"] !== "undefined") {
+                this.width = this.additional_options["dimensions"]["width"];
+            }
+            if (this.additional_options["dimensions"]["height"] !== "undefined") {
+                this.height = this.additional_options["dimensions"]["height"];
+            }
+        }
+        this.updateBoundingCoords();
+        this.fill_colour = '#000000';
+        if (typeof this.additional_options["fill_colour"] !== "undefined") {
+            this.fill_colour = this.additional_options["fill_colour"];
+        }
+        this.is_draggable = false;
+        if (typeof this.additional_options["is_draggable"] !== "undefined") {
+            this.is_draggable = this.additional_options["is_draggable"];
+        }
+    }
+    updateBoundingCoords() {
+        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
     }
     getId() {
         return this.id;
@@ -292,6 +299,53 @@ class DivbloxBaseCanvasObject {
     reposition(coords = {x:0,y:0}) {
         this.x = coords.x - this.x_delta;
         this.y = coords.y - this.y_delta;
-        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
+        this.updateBoundingCoords();
+    }
+    getJson() {
+        return {
+            "type": "DivbloxBaseCanvasObject",
+            "x": this.x,
+            "y": this.y,
+            "additional_options": this.additional_options,
+            "data": this.object_data
+        };
     }
 }
+
+/**
+ * The NodeCanvasObject is basically a circle that is filled with a specified colour, has an optional image or text in
+ * its center and also has an optional indicator on its top right
+ *   _[x]
+ * / x \
+ * \__/
+ *
+ */
+class NodeCanvasObject extends DivbloxBaseCanvasObject {
+    initializeObject() {
+        super.initializeObject();
+        this.node_radius = 10;
+        if (typeof this.additional_options["dimensions"] !== "undefined") {
+            if (typeof this.additional_options["dimensions"]["radius"] !== "undefined") {
+                this.node_radius = this.additional_options["dimensions"]["radius"];
+            }
+        }
+        this.updateBoundingCoords();
+    }
+    updateBoundingCoords() {
+        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.node_radius*2,y2:this.y+this.node_radius*2};
+    }
+    drawObject(context_obj = null) {
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        context_obj.save();
+        context_obj.beginPath();
+        context_obj.moveTo(this.x, this.y);
+        context_obj.arc(this.x,this.y,this.node_radius,0,Math.PI * 2,true);
+        context_obj.fillStyle = this.fill_colour;
+        context_obj.fill();
+        context_obj.restore();
+    }
+}
+//#endregion
+

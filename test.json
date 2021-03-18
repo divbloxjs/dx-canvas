@@ -4,12 +4,12 @@
     "x": 20,
     "y": 20,
     "additional_options": {
-      "is_draggable":false,
-      "fill_colour": "#def7d1"
-    },
-    "dimensions": {
-      "width":100,
-      "height":100
+      "is_draggable":true,
+      "fill_colour": "#aaee33",
+      "dimensions": {
+        "width":100,
+        "height":200
+      }
     },
     "data": {}
   },
@@ -21,23 +21,22 @@
       "is_draggable":false,
       "fill_colour": "#def7d1",
       "dimensions": {
-        "width":100,
+        "width":300,
         "height":100
       }
     },
     "data": {}
   },
   {
-    "type": "DivbloxBaseCanvasObject",
+    "type": "NodeCanvasObject",
     "x": 240,
     "y": 240,
     "additional_options": {
-      "is_draggable":false,
-      "fill_colour": "#def7d1"
-    },
-    "dimensions": {
-      "width":100,
-      "height":100
+      "is_draggable":true,
+      "fill_colour": "#eeda2d",
+      "dimensions": {
+        "radius": 100
+      }
     },
     "data": {}
   }
