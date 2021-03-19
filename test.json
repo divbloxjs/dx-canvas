@@ -15,11 +15,11 @@
   },
   {
     "type": "DivbloxBaseCanvasObject",
-    "x": 120,
+    "x": 520,
     "y": 120,
     "additional_options": {
       "is_draggable":false,
-      "fill_colour": "#def7d1",
+      "fill_colour": "#d34000",
       "dimensions": {
         "width":300,
         "height":100
@@ -29,13 +29,47 @@
   },
   {
     "type": "NodeCanvasObject",
-    "x": 240,
-    "y": 240,
+    "x": 340,
+    "y": 340,
     "additional_options": {
       "is_draggable":true,
-      "fill_colour": "#eeda2d",
+      "fill_colour": "#00EEA6",
       "dimensions": {
-        "radius": 100
+        "radius": 50
+      },
+      "image": "http://via.placeholder.com/150"
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseHtmlCanvasObject",
+    "x": 600,
+    "y": 340,
+    "additional_options": {
+      "is_draggable":true,
+      "fill_colour": "#00EEA6",
+      "dimensions": {
+        "width":300,
+        "height":100
+      },
+      "html_to_render": "<style>.red{background-color:red;}</style><p class=\"red\">This is a html</p>"
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxDataListCanvasObject",
+    "x": 600,
+    "y": 340,
+    "additional_options": {
+      "is_draggable":true,
+      "fill_colour": "#00EEA6",
+      "dimensions": {
+        "width":300,
+        "height":100,
+        "expanded_dimensions": {
+          "width":500,
+          "height":800
+        }
       }
     },
     "data": {}

@@ -3,7 +3,11 @@
 // - Basic circle with fill and text and perhaps icon
 // - Basic rectangle with fill and text and perhaps icon
 // - Connector with start and end point. This one needs to update as a draggable object that it's connected to is dragged
-// - Rectangle with the option to expand. When it expands we need to adjust all objects to its left and bottom with the delta
+// - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
+//      When it expands we need to adjust all objects to its left and bottom with the delta
+//      This would be the base object for data model entities
+// Find a way to build the input json from a logical flow of data (Virtual Routez)
+
 
 const dx_canvas = {
     canvas_obj: null,
@@ -48,6 +52,7 @@ const dx_canvas = {
         }
         switch(json_obj["type"]) {
             case 'DivbloxBaseCanvasObject': return new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'DivbloxBaseHtmlCanvasObject': return new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
             case 'NodeCanvasObject': return new NodeCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
                 //TODO: When new object types are defined, implement their instantiation here.
             default: throw new Error("Invalid object type provided");
@@ -246,6 +251,7 @@ class DivbloxBaseCanvasObject {
             this.additional_options = additional_options;
         }
         this.object_data = object_data;
+        this.show_bounding_box = false; //Debug purposes
         this.initializeObject();
     }
     initializeObject() {
@@ -282,9 +288,12 @@ class DivbloxBaseCanvasObject {
             throw new Error("No context provided for object");
         }
         context_obj.save();
+        this.drawShadow(context_obj);
         context_obj.fillStyle = this.fill_colour;
         context_obj.fillRect(this.x,this.y,this.width,this.height);
         context_obj.restore();
+
+        //this.drawBoundingBox(context_obj); //Debug purposes
     }
     onClick() {
         console.log("Object "+this.getId()+" clicked");
@@ -310,8 +319,67 @@ class DivbloxBaseCanvasObject {
             "data": this.object_data
         };
     }
-}
+    drawShadow(context_obj = null) {
+        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        context_obj.shadowColor = "#0000000f";
+        context_obj.shadowBlur = 10;
+        context_obj.shadowOffsetX = 0;
+        context_obj.shadowOffsetY = 0;
+    }
+    drawBoundingBox(context_obj = null) {
+        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
 
+        context_obj.save();
+        context_obj.lineWidth = 0.5;
+        context_obj.beginPath();
+        context_obj.moveTo(this.bounding_rectangle_coords.x1,this.bounding_rectangle_coords.y1);
+        context_obj.lineTo(this.bounding_rectangle_coords.x2,this.bounding_rectangle_coords.y1);
+        context_obj.lineTo(this.bounding_rectangle_coords.x2,this.bounding_rectangle_coords.y2);
+        context_obj.lineTo(this.bounding_rectangle_coords.x1,this.bounding_rectangle_coords.y2);
+        context_obj.lineTo(this.bounding_rectangle_coords.x1,this.bounding_rectangle_coords.y1);
+        context_obj.fillStyle = "#000000";
+        context_obj.closePath();
+        context_obj.stroke();
+        context_obj.restore();
+    }
+}
+class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
+    initializeObject() {
+        super.initializeObject();
+        if (typeof this.additional_options["html_to_render"] === "undefined") {
+            throw new Error("No html provided");
+        }
+        const data = 'data:image/svg+xml;charset=utf-8,' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' + this.width + '" height="' + this.height + '">' +
+            '<foreignObject width="100%" height="100%">' +
+            dx_helpers.htmlToXml(this.additional_options["html_to_render"]) +
+            '</foreignObject>' +
+            '</svg>';
+        this.html_image = new Image();
+        this.html_image.src = data;
+        this.updateBoundingCoords();
+    }
+    drawObject(context_obj = null) {
+        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        context_obj.save();
+        context_obj.drawImage(this.html_image,this.x,this.y);
+        context_obj.restore();
+
+        //this.drawBoundingBox(context_obj); //Debug purposes
+    }
+}
+class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
+
+}
 /**
  * The NodeCanvasObject is basically a circle that is filled with a specified colour, has an optional image or text in
  * its center and also has an optional indicator on its top right
@@ -332,20 +400,52 @@ class NodeCanvasObject extends DivbloxBaseCanvasObject {
         this.updateBoundingCoords();
     }
     updateBoundingCoords() {
-        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.node_radius*2,y2:this.y+this.node_radius*2};
+        this.bounding_rectangle_coords =
+            {x1:this.x-this.node_radius,
+             y1:this.y-this.node_radius,
+             x2:this.x+this.node_radius,
+             y2:this.y+this.node_radius};
     }
     drawObject(context_obj = null) {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
         context_obj.save();
+        this.drawShadow(context_obj);
         context_obj.beginPath();
         context_obj.moveTo(this.x, this.y);
         context_obj.arc(this.x,this.y,this.node_radius,0,Math.PI * 2,true);
         context_obj.fillStyle = this.fill_colour;
         context_obj.fill();
         context_obj.restore();
+        if (typeof this.additional_options["image"] !== "undefined") {
+            const width = this.bounding_rectangle_coords.x2 - this.bounding_rectangle_coords.x1;
+            const height = this.bounding_rectangle_coords.y2 - this.bounding_rectangle_coords.y1;
+            const img_coords = {x:this.bounding_rectangle_coords.x1+width/4,y:this.bounding_rectangle_coords.y1+height/4}
+            const img = new Image();
+            img.src = this.additional_options["image"];
+            context_obj.save();
+            context_obj.drawImage(img,img_coords.x,img_coords.y,width/2,height/2);
+            context_obj.restore();
+        }
+
+
+        //this.drawBoundingBox(context_obj);
     }
 }
 //#endregion
-
+//#region Helper functions
+const dx_helpers = {
+    htmlToXml(html) {
+        const doc = document.implementation.createHTMLDocument('');
+        doc.write(html);
+        // You must manually set the xmlns if you intend to immediately serialize
+        // the HTML document to a string as opposed to appending it to a
+        // <foreignObject> in the DOM
+        doc.documentElement.setAttribute('xmlns', doc.documentElement.namespaceURI);
+        // Get well-formed markup
+        html = (new XMLSerializer).serializeToString(doc.body);
+        return html;
+    }
+}
+//#endregion
