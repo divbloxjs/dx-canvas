@@ -23,13 +23,14 @@
     <canvas id="dxCanvas">Please upgrade your browser to view this content</canvas>
 </div>
 <script src="../dx-canvas.js"></script>
+<script src="custom-implementation.js"></script>
 <script>
     const script_start_int = window.location.href.indexOf("test.html");
     const root_str = window.location.href.substr(0,script_start_int);
     async function initCanvas() {
         const response = await fetch(root_str+'test.json');
         const data_json = await response.json();
-        dx_canvas.initCanvas('dxCanvas',data_json);
+        const dx_canvas = new MyCustomCanvas('dxCanvas',data_json)
     }
     initCanvas();
 </script>

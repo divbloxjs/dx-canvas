@@ -9,19 +9,18 @@
 // Find a way to build the input json from a logical flow of data (Virtual Routez)
 
 
-const dx_canvas = {
-    canvas_obj: null,
-    context_obj: null,
-    objects:{},
-    active_object:null,
-    is_mouse_down: false,
-    drag_start:{x:0,y:0},
-    drag_end:{x:0,y:0},
-    drag_translate_factor:1,
-    is_dragging:false,
-    zoom_factor:0.02,
-    initCanvas(element_id = "dxCanvas",objects = []) {
+class DivbloxCanvas {
+    constructor(element_id = "dxCanvas",objects = []) {
         this.canvas_obj = document.getElementById(element_id);
+        this.context_obj = null;
+        this.objects = {};
+        this.active_object = null;
+        this.is_mouse_down = false;
+        this.drag_start = {x:0,y:0};
+        this.drag_end = {x:0,y:0};
+        this.drag_translate_factor = 1;
+        this.is_dragging = false;
+        this.zoom_factor = 0.02;
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
         this.canvas_obj.width = this.canvas_obj.parentElement.clientWidth;
@@ -45,29 +44,36 @@ const dx_canvas = {
             this.registerObject(this.initObjectFromJson(object));
         }
         window.requestAnimationFrame(this.update.bind(this));
-    },
-    initObjectFromJson(json_obj = {}) {
+    }
+    initObjectFromJson(json_obj = {},must_handle_error_bool = true) {
         if (typeof json_obj["type"] === "undefined") {
             throw new Error("No object type provided");
         }
+        let return_obj = null;
         switch(json_obj["type"]) {
-            case 'DivbloxBaseCanvasObject': return new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
-            case 'DivbloxBaseHtmlCanvasObject': return new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
-            case 'DivbloxBaseCircleCanvasObject': return new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
-                //TODO: When new object types are defined, implement their instantiation here.
-            default: console.error("Invalid object type '"+json_obj["type"]+"' provided");
+            //TODO: When new object types are defined, implement their instantiation in a child class that overrides
+            // this method. This child method should pass false to must_handle_error_bool and deal with it
+            case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+                break;
+            case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+                break;
+            case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+                break;
+            default:
+                if (must_handle_error_bool === true) {console.error("Invalid object type '"+json_obj["type"]+"' provided");}
         }
-    },
+        return return_obj;
+    }
     setContext() {
-        if (this.canvas_obj === null) {
+        if ((this.canvas_obj === null) || (this.canvas_obj === undefined)) {
             throw new Error("Canvas not initialized");
         }
         this.context_obj = this.canvas_obj.getContext('2d');
-    },
+    }
     getContext() {
         this.setContext();
         return this.context_obj;
-    },
+    }
     drawCanvas() {
         this.context_obj.save();
         this.context_obj.setTransform(1,0,0,1,0,0);
@@ -77,26 +83,26 @@ const dx_canvas = {
             const object = this.objects[object_id];
             object.drawObject(this.context_obj);
         }
-    },
+    }
     resetCanvas() {
         this.context_obj.setTransform(1,0,0,1,0,0);
-    },
+    }
     update() {
         this.drawCanvas();
         window.requestAnimationFrame(this.update.bind(this));
-    },
+    }
     registerObject(object = null) {
         if (object === null) {
             return;
         }
         this.objects[object.getId()] = object;
-    },
+    }
     validateEvent(event_obj = null) {
         this.setContext();
         if (event_obj === null) {
             throw new Error("Invalid event provided");
         }
-    },
+    }
     getMousePosition(event_obj = null) {
         this.validateEvent(event_obj);
         const rect = this.canvas_obj.getBoundingClientRect();
@@ -110,7 +116,7 @@ const dx_canvas = {
             cx:canvas_x,
             cy:canvas_y
         };
-    },
+    }
     onMouseMove(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -119,23 +125,23 @@ const dx_canvas = {
             this.drag_end.y = mouse.cy;
             this.updateDrag();
         }
-    },
+    }
     onMouseEnter(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
-    },
+    }
     onMouseLeave(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
-    },
+    }
     onMouseOver(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
-    },
+    }
     onMouseOut(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
-    },
+    }
     onMouseDown(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -144,7 +150,7 @@ const dx_canvas = {
         this.drag_start.x = mouse.cx;
         this.drag_start.y = mouse.cy;
         this.setActiveObject({x:mouse.cx,y:mouse.cy});
-    },
+    }
     onMouseUp(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -156,30 +162,30 @@ const dx_canvas = {
             this.setActiveObject({x:-1,y:-1});
         }
         this.is_dragging = false;
-    },
+    }
     onMouseClick(event_obj = null) {
         // We handle this with mouseup
-    },
+    }
     onMouseDoubleClick(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
         if (this.active_object !== null) {
             this.active_object.onDoubleClick();
         }
-    },
+    }
     onMouseRightClick(event_obj = null) {
         this.validateEvent(event_obj);
         event_obj.preventDefault();
         const mouse = this.getMousePosition(event_obj);
         console.log("Mouse right clicked at: "+JSON.stringify(mouse));
         this.resetCanvas();
-    },
+    }
     onMouseScroll(event_obj = null) {
         this.validateEvent(event_obj);
         event_obj.preventDefault();
         const mouse = this.getMousePosition(event_obj);
         this.zoomCanvas(event_obj.deltaY/Math.abs(event_obj.deltaY));
-    },
+    }
     setActiveObject(mouse_down_position = {x:0,y:0},trigger_click = false) {
         console.log("Objects: "+JSON.stringify(this.objects));
         if ((this.active_object !== null) && this.is_mouse_down) {
@@ -202,7 +208,7 @@ const dx_canvas = {
             }
         }
         console.log("Active object: "+JSON.stringify(this.active_object));
-    },
+    }
     updateDrag() {
         const tx = this.context_obj.getTransform();
         if (this.active_object === null) {
@@ -220,7 +226,7 @@ const dx_canvas = {
             }
         }
         this.is_dragging = true;
-    },
+    }
     zoomCanvas(direction = -1) {
         let zoom_factor = 1-this.zoom_factor;
         if (direction < 0) {
@@ -229,6 +235,7 @@ const dx_canvas = {
         this.context_obj.scale(zoom_factor,zoom_factor);
     }
 }
+
 //#region Object types
 class DivbloxBaseCanvasObject {
     constructor(draw_start_coords = {x:0,y:0},
@@ -434,6 +441,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 }
 //#endregion
+
 //#region Helper functions
 const dx_helpers = {
     htmlToXml(html) {

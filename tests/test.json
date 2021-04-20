@@ -73,5 +73,19 @@
       }
     },
     "data": {}
+  },
+  {
+    "type": "MyCustomCanvasObject",
+    "x": 720,
+    "y": 220,
+    "additional_options": {
+      "is_draggable":true,
+      "fill_colour": "#dAF000",
+      "dimensions": {
+        "width":300,
+        "height":100
+      }
+    },
+    "data": {}
   }
 ]
