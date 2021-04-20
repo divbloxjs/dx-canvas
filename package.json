@@ -1,0 +1,26 @@
+{
+  "name": "dx-canvas",
+  "version": "1.0.0",
+  "description": "A canvas library used by various Divblox tools like the Divblox Data Modeler",
+  "main": "dx-canvas.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JohanGriesel/dx-canvas.git"
+  },
+  "keywords": [
+    "Divblox",
+    "canvas"
+  ],
+  "author": "Johan Griesel, johan@stratusolve.com (Stratusolve (Pty)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JohanGriesel/dx-canvas/issues"
+  },
+  "homepage": "https://github.com/JohanGriesel/dx-canvas#readme"
+}
