@@ -66,6 +66,7 @@ class DivbloxCanvas {
         switch(json_obj["type"]) {
             //TODO: When new object types are defined, implement their instantiation in a child class that overrides
             // this method. This child method should pass false to must_handle_error_bool and deal with it
+            case 'DivbloxDataListCanvasObject':
             case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
                 break;
             case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
@@ -613,6 +614,10 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * @param {{radius:number}} additional_options.dimensions {} An object containing the radius of this canvas object
      * @param {string} additional_options.image {} Optional. The path to the image that should be displayed in the
      * center of the circle
+     * @param {number} additional_options.notification_count {} Optional. A number to display in a notification
+     * bubble at the top right of the circle
+     * @param {string} additional_options.notification_bubble_colour A HEX value representing the fill colour for
+     * the notification bubble
      * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
      * canvas, but is available to the developer when needed
      */
@@ -631,12 +636,23 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant variables for this object
      */
     initializeObject() {
+        this.notification_bubble_radius = 0;
+        this.notification_bubble_colour = '#FF0000';
         super.initializeObject();
         this.radius = 10;
+        this.notification_bubble_coords = {x:this.x,y:this.y};
         if (typeof this.additional_options["dimensions"] !== "undefined") {
             if (typeof this.additional_options["dimensions"]["radius"] !== "undefined") {
                 this.radius = this.additional_options["dimensions"]["radius"];
+                this.notification_bubble_radius = Math.round(this.radius * 0.25);
+                this.notification_bubble_coords = {
+                    x:this.x + (this.radius * Math.cos(315 * (Math.PI/180))),
+                    y:this.y + (this.radius * Math.sin(315 * (Math.PI/180)))
+                };
             }
+        }
+        if (typeof this.additional_options["notification_bubble_colour"] !== "undefined") {
+            this.notification_bubble_colour = this.additional_options["notification_bubble_colour"];
         }
         this.updateBoundingCoords();
     }
@@ -668,6 +684,51 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         context_obj.fillStyle = this.fill_colour;
         context_obj.fill();
         context_obj.restore();
+        
+        if ((typeof this.additional_options["notification_count"] !== "undefined") && (this.additional_options["notification_count"] > 0)) {
+            // Let's draw the notification counter and its containing bubble
+            context_obj.save();
+            
+            const counter_text = this.additional_options["notification_count"];
+            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
+            
+            const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
+                Math.ceil(context_obj.measureText(counter_text).width) : 0;
+            
+            const bubble_arc_coords = {
+                x1:this.notification_bubble_coords.x,
+                y1:this.notification_bubble_coords.y,
+                x2:this.notification_bubble_coords.x + counter_text_width,
+                y2:this.notification_bubble_coords.y};
+            
+            context_obj.fillStyle = this.notification_bubble_colour;
+            
+            context_obj.beginPath();
+            context_obj.moveTo(bubble_arc_coords.x1, bubble_arc_coords.y1);
+            context_obj.arc(bubble_arc_coords.x1, bubble_arc_coords.y1, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),true);
+            context_obj.fill();
+            context_obj.closePath();
+            context_obj.beginPath();
+            context_obj.moveTo(bubble_arc_coords.x2, bubble_arc_coords.y2);
+            context_obj.arc(bubble_arc_coords.x2, bubble_arc_coords.y2, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),false);
+            context_obj.fill();
+            context_obj.closePath();
+    
+    
+            context_obj.beginPath();
+            context_obj.rect(bubble_arc_coords.x1 - 0.5, bubble_arc_coords.y1 - this.notification_bubble_radius, counter_text_width + 0.75, this.notification_bubble_radius * 2);
+            context_obj.fill();
+            
+            let text_coords = {
+                x:Math.floor(this.notification_bubble_coords.x - (this.notification_bubble_radius / 4)),
+                y:Math.ceil(this.notification_bubble_coords.y + (this.notification_bubble_radius / 4))}
+            if (counter_text_width > 0) {
+                text_coords.x = text_coords.x + (this.notification_bubble_radius / 4);
+            }
+            context_obj.fillStyle = '#fff';
+            context_obj.fillText(counter_text, text_coords.x, text_coords.y);
+            context_obj.restore();
+        }
         if (typeof this.additional_options["image"] !== "undefined") {
             const width = this.bounding_rectangle_coords.x2 - this.bounding_rectangle_coords.x1;
             const height = this.bounding_rectangle_coords.y2 - this.bounding_rectangle_coords.y1;
