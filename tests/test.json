@@ -28,7 +28,7 @@
     "data": {}
   },
   {
-    "type": "NodeCanvasObject",
+    "type": "DivbloxBaseCircleCanvasObject",
     "x": 340,
     "y": 340,
     "additional_options": {

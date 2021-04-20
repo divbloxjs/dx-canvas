@@ -53,9 +53,9 @@ const dx_canvas = {
         switch(json_obj["type"]) {
             case 'DivbloxBaseCanvasObject': return new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
             case 'DivbloxBaseHtmlCanvasObject': return new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
-            case 'NodeCanvasObject': return new NodeCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'DivbloxBaseCircleCanvasObject': return new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
                 //TODO: When new object types are defined, implement their instantiation here.
-            default: throw new Error("Invalid object type provided");
+            default: console.error("Invalid object type '"+json_obj["type"]+"' provided");
         }
     },
     setContext() {
@@ -381,14 +381,14 @@ class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
 
 }
 /**
- * The NodeCanvasObject is basically a circle that is filled with a specified colour, has an optional image or text in
+ * The DivbloxBaseCircleCanvasObject is basically a circle that is filled with a specified colour, has an optional image or text in
  * its center and also has an optional indicator on its top right
  *   _[x]
  * / x \
  * \__/
  *
  */
-class NodeCanvasObject extends DivbloxBaseCanvasObject {
+class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
     initializeObject() {
         super.initializeObject();
         this.node_radius = 10;
