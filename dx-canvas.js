@@ -363,6 +363,17 @@ class DivbloxCanvas {
  * be concerned about how the object is positioned, etc.
  */
 class DivbloxBaseCanvasObject {
+    /**
+     * Initializes the relevant data for the object
+     * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
+     * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
+     * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
+     * @param {{width:number, height:number}} additional_options.dimensions {} An object containing the width and
+     * height of this canvas object
+     * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
+     * canvas, but is available to the developer when needed
+     */
     constructor(draw_start_coords = {x:0,y:0},
                 additional_options =
                     {is_draggable:false,
@@ -386,6 +397,10 @@ class DivbloxBaseCanvasObject {
         this.show_bounding_box = false; //Debug purposes
         this.initializeObject();
     }
+    
+    /**
+     * Initializes the relevant variables for this object
+     */
     initializeObject() {
         if (typeof this.additional_options["dimensions"] !== "undefined") {
             if (this.additional_options["dimensions"]["width"] !== "undefined") {
@@ -405,17 +420,36 @@ class DivbloxBaseCanvasObject {
             this.is_draggable = this.additional_options["is_draggable"];
         }
     }
+    
+    /**
+     * Updates the bounding coordinates for the object. Useful when the canvas is transformed to ensure that the
+     * object is displayed correctly
+     */
     updateBoundingCoords() {
         this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height};
     }
+    
+    /**
+     * Returns the unique id associated with this object
+     * @return {string}
+     */
     getId() {
         return this.id;
     }
+    
+    /**
+     * Returns the rectangle that covers the area of the obejct
+     * @return {*|{y1: number, x1: number, y2: number, x2: number}}
+     */
     getBoundingRectangle() {
         return this.bounding_rectangle_coords;
     }
+    
+    /**
+     * This base class simply draws a rectangle, but this function should be overridden for more complex shapes
+     * @param context_obj The context object of our canvas
+     */
     drawObject(context_obj = null) {
-        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
@@ -427,21 +461,44 @@ class DivbloxBaseCanvasObject {
 
         //this.drawBoundingBox(context_obj); //Debug purposes
     }
+    
+    /**
+     * This functions handles the on click event for this object. This should be implemented in a child class
+     */
     onClick() {
         console.log("Object "+this.getId()+" clicked");
     }
+    
+    /**
+     * This functions handles the on double click event for this object. This should be implemented in a child class
+     */
     onDoubleClick() {
         console.log("Object "+this.getId()+" double clicked");
     }
+    
+    /**
+     * Calculates x and y deltas based on the provided reference coordinates. Useful when dragging the object
+     * @param {x:number, y:number} reference_coords The reference coordinates provided
+     */
     updateDeltas(reference_coords = {x:0,y:0}) {
         this.x_delta = reference_coords.x - this.x;
         this.y_delta = reference_coords.y - this.y;
     }
+    
+    /**
+     * Repositions the object to the coordinates provided
+     * @param {x:number, y:number} coords The x and y coordinates to move to
+     */
     reposition(coords = {x:0,y:0}) {
         this.x = coords.x - this.x_delta;
         this.y = coords.y - this.y_delta;
         this.updateBoundingCoords();
     }
+    
+    /**
+     * Returns a JSON representation of this object
+     * @return {{data: {}, x: number, y: number, additional_options: (*|{}|{is_draggable: boolean, fill_colour: string, dimensions: {width: number, height: number}}), type: string}}
+     */
     getJson() {
         return {
             "type": "DivbloxBaseCanvasObject",
@@ -451,8 +508,12 @@ class DivbloxBaseCanvasObject {
             "data": this.object_data
         };
     }
+    
+    /**
+     * Draws a shadow under the object
+     * @param context_obj The context object of our canvas
+     */
     drawShadow(context_obj = null) {
-        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
@@ -461,8 +522,13 @@ class DivbloxBaseCanvasObject {
         context_obj.shadowOffsetX = 0;
         context_obj.shadowOffsetY = 0;
     }
+    
+    /**
+     * Draws the bounding box for this object. This function is used for debug purposes to see the area that an
+     * object occupies
+     * @param context_obj The context object of our canvas
+     */
     drawBoundingBox(context_obj = null) {
-        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
@@ -481,7 +547,14 @@ class DivbloxBaseCanvasObject {
         context_obj.restore();
     }
 }
+
+/**
+ * The DivbloxBaseHtmlCanvasObject attempts to render a piece of HTML on the canvas
+ */
 class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
+    /**
+     * Initializes the relevant variables for this object
+     */
     initializeObject() {
         super.initializeObject();
         if (typeof this.additional_options["html_to_render"] === "undefined") {
@@ -497,6 +570,10 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.html_image.src = data;
         this.updateBoundingCoords();
     }
+    /**
+     * This base class draws the html provided onto the canvas
+     * @param context_obj The context object of our canvas
+     */
     drawObject(context_obj = null) {
         //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
         if (context_obj === null) {
@@ -509,9 +586,15 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         //this.drawBoundingBox(context_obj); //Debug purposes
     }
 }
-class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
 
+/**
+ * The DivbloxDataListCanvasObject attempts to display an interactive HTML list, contained inside a <div> element as
+ * an overlay on the canvas
+ */
+class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
+    //TODO: Implement this class
 }
+
 /**
  * The DivbloxBaseCircleCanvasObject is basically a circle that is filled with a specified colour, has an optional image or text in
  * its center and also has an optional indicator on its top right
@@ -521,23 +604,58 @@ class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
  *
  */
 class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
+    /**
+     * Initializes the relevant data for the object
+     * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
+     * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
+     * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
+     * @param {{radius:number}} additional_options.dimensions {} An object containing the radius of this canvas object
+     * @param {string} additional_options.image {} Optional. The path to the image that should be displayed in the
+     * center of the circle
+     * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
+     * canvas, but is available to the developer when needed
+     */
+    constructor(draw_start_coords = {x:0,y:0},
+                additional_options =
+                    {is_draggable:false,
+                        fill_colour:"#000000",
+                        dimensions:
+                            {radius:10}
+                    },
+                object_data = {}) {
+        super();
+    }
+    
+    /**
+     * Initializes the relevant variables for this object
+     */
     initializeObject() {
         super.initializeObject();
-        this.node_radius = 10;
+        this.radius = 10;
         if (typeof this.additional_options["dimensions"] !== "undefined") {
             if (typeof this.additional_options["dimensions"]["radius"] !== "undefined") {
-                this.node_radius = this.additional_options["dimensions"]["radius"];
+                this.radius = this.additional_options["dimensions"]["radius"];
             }
         }
         this.updateBoundingCoords();
     }
+    
+    /**
+     * Updates the bounding coordinates for the object based on the circle's radius
+     */
     updateBoundingCoords() {
         this.bounding_rectangle_coords =
-            {x1:this.x-this.node_radius,
-             y1:this.y-this.node_radius,
-             x2:this.x+this.node_radius,
-             y2:this.y+this.node_radius};
+            {x1:this.x-this.radius,
+             y1:this.y-this.radius,
+             x2:this.x+this.radius,
+             y2:this.y+this.radius};
     }
+    
+    /**
+     * Draws the circle on the canvas
+     * @param context_obj The context object of our canvas
+     */
     drawObject(context_obj = null) {
         if (context_obj === null) {
             throw new Error("No context provided for object");
@@ -546,7 +664,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         this.drawShadow(context_obj);
         context_obj.beginPath();
         context_obj.moveTo(this.x, this.y);
-        context_obj.arc(this.x,this.y,this.node_radius,0,Math.PI * 2,true);
+        context_obj.arc(this.x,this.y,this.radius,0,Math.PI * 2,true);
         context_obj.fillStyle = this.fill_colour;
         context_obj.fill();
         context_obj.restore();
@@ -560,8 +678,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.drawImage(img,img_coords.x,img_coords.y,width/2,height/2);
             context_obj.restore();
         }
-
-
+        
         //this.drawBoundingBox(context_obj);
     }
 }
