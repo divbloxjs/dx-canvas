@@ -29,16 +29,16 @@
   },
   {
     "type": "DivbloxBaseCircleCanvasObject",
-    "x": 340,
-    "y": 340,
+    "x": 200,
+    "y": 200,
     "additional_options": {
       "is_draggable":true,
       "fill_colour": "#00EEA6",
       "dimensions": {
-        "radius": 50
+        "radius": 15
       },
       "image": "http://via.placeholder.com/150",
-      "notification_count": 0,
+      "notification_count": 99999999999999,
       "notification_bubble_colour": "#FF0000"
     },
     "data": {}

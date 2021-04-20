@@ -676,8 +676,14 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
+        this.notification_bubble_coords = {
+            x:this.x + (this.radius * Math.cos(315 * (Math.PI/180))),
+            y:this.y + (this.radius * Math.sin(315 * (Math.PI/180)))
+        };
         context_obj.save();
+        
         this.drawShadow(context_obj);
+        
         context_obj.beginPath();
         context_obj.moveTo(this.x, this.y);
         context_obj.arc(this.x,this.y,this.radius,0,Math.PI * 2,true);
@@ -693,7 +699,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
             
             const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
-                Math.ceil(context_obj.measureText(counter_text).width) : 0;
+                Math.floor(context_obj.measureText(counter_text).width - (this.notification_bubble_radius / 2)) : 0;
             
             const bubble_arc_coords = {
                 x1:this.notification_bubble_coords.x,
@@ -714,19 +720,18 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.fill();
             context_obj.closePath();
     
-    
             context_obj.beginPath();
             context_obj.rect(bubble_arc_coords.x1 - 0.5, bubble_arc_coords.y1 - this.notification_bubble_radius, counter_text_width + 0.75, this.notification_bubble_radius * 2);
             context_obj.fill();
             
             let text_coords = {
-                x:Math.floor(this.notification_bubble_coords.x - (this.notification_bubble_radius / 4)),
+                x:(bubble_arc_coords.x1 + bubble_arc_coords.x2) / 2,
                 y:Math.ceil(this.notification_bubble_coords.y + (this.notification_bubble_radius / 4))}
-            if (counter_text_width > 0) {
-                text_coords.x = text_coords.x + (this.notification_bubble_radius / 4);
-            }
+            
             context_obj.fillStyle = '#fff';
+            context_obj.textAlign = 'center';
             context_obj.fillText(counter_text, text_coords.x, text_coords.y);
+            
             context_obj.restore();
         }
         if (typeof this.additional_options["image"] !== "undefined") {

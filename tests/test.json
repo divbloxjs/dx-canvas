@@ -7,10 +7,10 @@
       "is_draggable":true,
       "fill_colour": "#00EEA6",
       "dimensions": {
-        "radius": 20
+        "radius": 250
       },
       "image": "http://via.placeholder.com/150",
-      "notification_count": 100,
+      "notification_count": 7908,
       "notification_bubble_colour": "#FF0000"
     },
     "data": {}
