@@ -8,8 +8,17 @@
 //      This would be the base object for data model entities
 // Find a way to build the input json from a logical flow of data (Virtual Routez)
 
-
+//#region The core DivbloxCanvas functionality
+/**
+ * DivbloxCanvas manages the drawing and updating of a canvas along with user inputs
+ */
 class DivbloxCanvas {
+    /**
+     * Sets up the canvas, based on the provided html element id and then initializes the relevant objects defined
+     * in the objects array
+     * @param element_id The id of the html element that describes the canvas
+     * @param objects An array of objects to initialize on the canvas. See tests/test.json for an example
+     */
     constructor(element_id = "dxCanvas",objects = []) {
         this.canvas_obj = document.getElementById(element_id);
         this.context_obj = null;
@@ -35,16 +44,20 @@ class DivbloxCanvas {
         this.canvas_obj.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
         this.canvas_obj.addEventListener('contextmenu', this.onMouseRightClick.bind(this), false);
         this.canvas_obj.addEventListener('wheel', this.onMouseScroll.bind(this), false);
-        /*this.registerObject(new DivbloxBaseCanvasObject({x:20,y:20},{is_draggable:true}));
-        this.registerObject(new DivbloxBaseCanvasObject({x:140,y:40}));
-        this.registerObject(new DivbloxBaseCanvasObject({x:200,y:400},
-            {is_draggable:true,fill_colour:"#fe765d",
-                dimensions: {width:100,height:200}}));*/
         for (const object of objects) {
             this.registerObject(this.initObjectFromJson(object));
         }
         window.requestAnimationFrame(this.update.bind(this));
     }
+    
+    /**
+     * Instantiates a new object to be rendered on the canvas, based on the json provided
+     * @param json_obj The object to initialize
+     * @param must_handle_error_bool If this is false, no error will be presented in the console if the object type
+     * does not exist. This is useful for when you override this function in a child class to prevent unnecessary
+     * console errors
+     * @return {null} An instance of the newly instantiated object or null
+     */
     initObjectFromJson(json_obj = {},must_handle_error_bool = true) {
         if (typeof json_obj["type"] === "undefined") {
             throw new Error("No object type provided");
@@ -235,6 +248,7 @@ class DivbloxCanvas {
         this.context_obj.scale(zoom_factor,zoom_factor);
     }
 }
+//#endregion
 
 //#region Object types
 class DivbloxBaseCanvasObject {

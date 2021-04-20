@@ -25,8 +25,8 @@
 <script src="../dx-canvas.js"></script>
 <script src="custom-implementation.js"></script>
 <script>
-    const script_start_int = window.location.href.indexOf("test.html");
-    const root_str = window.location.href.substr(0,script_start_int);
+    const script_start_index_int = window.location.href.indexOf("test.html");
+    const root_str = window.location.href.substr(0,script_start_index_int);
     async function initCanvas() {
         const response = await fetch(root_str+'test.json');
         const data_json = await response.json();
