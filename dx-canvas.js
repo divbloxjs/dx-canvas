@@ -6,7 +6,7 @@
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
 //      This would be the base object for data model entities
-// Find a way to build the input json from a logical flow of data (Virtual Routez)
+// Find a way to build the input json from a logical flow of data
 
 //#region The core DivbloxCanvas functionality
 /**
@@ -617,14 +617,14 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * canvas, but is available to the developer when needed
      */
     constructor(draw_start_coords = {x:0,y:0},
-                additional_options =
-                    {is_draggable:false,
-                        fill_colour:"#000000",
-                        dimensions:
-                            {radius:10}
-                    },
+                additional_options= {
+                    is_draggable:false,
+                    fill_colour:"#000000",
+                    dimensions:
+                        {width:100,height:100}
+                },
                 object_data = {}) {
-        super();
+        super(draw_start_coords, additional_options, object_data);
     }
     
     /**
