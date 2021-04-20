@@ -77,16 +77,29 @@ class DivbloxCanvas {
         }
         return return_obj;
     }
+    
+    /**
+     * A wrapper for the canvase getContext method that updates our local context object
+     */
     setContext() {
         if ((this.canvas_obj === null) || (this.canvas_obj === undefined)) {
             throw new Error("Canvas not initialized");
         }
         this.context_obj = this.canvas_obj.getContext('2d');
     }
+    
+    /**
+     * Refreshes the canvas context and returns it
+     * @return {null}
+     */
     getContext() {
         this.setContext();
         return this.context_obj;
     }
+    
+    /**
+     * Cycles through the registered objects and draws them on the canvas
+     */
     drawCanvas() {
         this.context_obj.save();
         this.context_obj.setTransform(1,0,0,1,0,0);
@@ -97,30 +110,55 @@ class DivbloxCanvas {
             object.drawObject(this.context_obj);
         }
     }
+    
+    /**
+     * Resets all canvas transforms
+     */
     resetCanvas() {
         this.context_obj.setTransform(1,0,0,1,0,0);
     }
+    
+    /**
+     * This function is called recursively to update the canvas on every available animation frame
+     */
     update() {
         this.drawCanvas();
         window.requestAnimationFrame(this.update.bind(this));
     }
+    
+    /**
+     * Adds the relevant object to the objects array
+     * @param object
+     */
     registerObject(object = null) {
         if (object === null) {
             return;
         }
         this.objects[object.getId()] = object;
     }
+    
+    /**
+     * Simply checks that a received event is not null. This throws an error when an expected event is null because
+     * it would mean something went horribly wrong
+     * @param event_obj The event object that was received
+     */
     validateEvent(event_obj = null) {
         this.setContext();
         if (event_obj === null) {
             throw new Error("Invalid event provided");
         }
     }
+    
+    /**
+     * Returns the position of the mouse on the canvas, honouring the transforms that were applied. This doesn't deal
+     * with skew
+     * @param event_obj The mouse event that was received
+     * @return {{cx: number, cy: number, x: number, y: number}} cx & cy Are the mouse coordinates on the canvas
+     */
     getMousePosition(event_obj = null) {
         this.validateEvent(event_obj);
         const rect = this.canvas_obj.getBoundingClientRect();
         const transform = this.context_obj.getTransform();
-        // This doesn't deal with skew
         const canvas_x = (event_obj.clientX - rect.left - transform.e) / transform.a;
         const canvas_y = (event_obj.clientY - rect.top - transform.f) / transform.d;
         return {
@@ -130,6 +168,11 @@ class DivbloxCanvas {
             cy:canvas_y
         };
     }
+    
+    /**
+     * Handles the mouse move event
+     * @param event_obj The mouse event that was received
+     */
     onMouseMove(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -139,22 +182,47 @@ class DivbloxCanvas {
             this.updateDrag();
         }
     }
+    
+    /**
+     * Handles the on mouse enter event
+     * @param event_obj The mouse event that was received
+     */
     onMouseEnter(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
     }
+    
+    /**
+     * Handles the on mouse leave event
+     * @param event_obj The mouse event that was received
+     */
     onMouseLeave(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
     }
+    
+    /**
+     * Handles the on mouse over event
+     * @param event_obj The mouse event that was received
+     */
     onMouseOver(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
     }
+    
+    /**
+     * Handles the on mouse out event
+     * @param event_obj The mouse event that was received
+     */
     onMouseOut(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
     }
+    
+    /**
+     * Handles the on mouse down event
+     * @param event_obj The mouse event that was received
+     */
     onMouseDown(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -164,6 +232,11 @@ class DivbloxCanvas {
         this.drag_start.y = mouse.cy;
         this.setActiveObject({x:mouse.cx,y:mouse.cy});
     }
+    
+    /**
+     * Handles the on mouse up event
+     * @param event_obj The mouse event that was received
+     */
     onMouseUp(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -176,9 +249,19 @@ class DivbloxCanvas {
         }
         this.is_dragging = false;
     }
+    
+    /**
+     * Handles the on mouse click event
+     * @param event_obj The mouse event that was received
+     */
     onMouseClick(event_obj = null) {
         // We handle this with mouseup
     }
+    
+    /**
+     * Handles the on mouse double click event
+     * @param event_obj The mouse event that was received
+     */
     onMouseDoubleClick(event_obj = null) {
         this.validateEvent(event_obj);
         const mouse = this.getMousePosition(event_obj);
@@ -186,6 +269,11 @@ class DivbloxCanvas {
             this.active_object.onDoubleClick();
         }
     }
+    
+    /**
+     * Handles the on mouse right click event
+     * @param event_obj The mouse event that was received
+     */
     onMouseRightClick(event_obj = null) {
         this.validateEvent(event_obj);
         event_obj.preventDefault();
@@ -193,14 +281,24 @@ class DivbloxCanvas {
         console.log("Mouse right clicked at: "+JSON.stringify(mouse));
         this.resetCanvas();
     }
+    
+    /**
+     * Handles the on mouse scroll event
+     * @param event_obj The mouse event that was received
+     */
     onMouseScroll(event_obj = null) {
         this.validateEvent(event_obj);
         event_obj.preventDefault();
         const mouse = this.getMousePosition(event_obj);
         this.zoomCanvas(event_obj.deltaY/Math.abs(event_obj.deltaY));
     }
-    setActiveObject(mouse_down_position = {x:0,y:0},trigger_click = false) {
-        console.log("Objects: "+JSON.stringify(this.objects));
+    
+    /**
+     * Uses the current mouse position to determine the object to set as active
+     * @param mouse_down_position The position of the mouse where we want to check for an object
+     * @param must_trigger_click_bool If true, then we trigger the onClick function of the relevant object
+     */
+    setActiveObject(mouse_down_position = {x:0,y:0},must_trigger_click_bool = false) {
         if ((this.active_object !== null) && this.is_mouse_down) {
             // This means we are dragging and we don't want to change the active object
             console.log("Not setting active object");
@@ -214,14 +312,18 @@ class DivbloxCanvas {
                 (object.getBoundingRectangle().y1 <= mouse_down_position.y) &&
                 (object.getBoundingRectangle().y2 >= mouse_down_position.y)) {
                 this.active_object = object;
-                if (trigger_click) {
+                if (must_trigger_click_bool) {
                     this.active_object.onClick();
                 }
                 break;
             }
         }
-        console.log("Active object: "+JSON.stringify(this.active_object));
     }
+    
+    /**
+     * If an object is active, this method attempts to drag just that object on the canvas, otherwise it calculates
+     * applies the correct transform while dragging the entire canvas
+     */
     updateDrag() {
         const tx = this.context_obj.getTransform();
         if (this.active_object === null) {
@@ -235,11 +337,15 @@ class DivbloxCanvas {
                 }
                 this.active_object.reposition({x:this.drag_end.x,y:this.drag_end.y});
                 this.registerObject(this.active_object);
-                console.log("Dragging object: "+JSON.stringify(this.active_object));
             }
         }
         this.is_dragging = true;
     }
+    
+    /**
+     * Zooms the canvas either in or out
+     * @param direction If equal to 1, then it zooms out, otherwise it zooms in
+     */
     zoomCanvas(direction = -1) {
         let zoom_factor = 1-this.zoom_factor;
         if (direction < 0) {
@@ -251,6 +357,11 @@ class DivbloxCanvas {
 //#endregion
 
 //#region Object types
+/**
+ * The base canvas object class that provides for how an object is represented on the Divblox canvas. This class is
+ * intended to be overridden by child classes to achieve different types of objects on the canvas without needing to
+ * be concerned about how the object is positioned, etc.
+ */
 class DivbloxBaseCanvasObject {
     constructor(draw_start_coords = {x:0,y:0},
                 additional_options =
