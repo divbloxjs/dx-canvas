@@ -1,6 +1,7 @@
 //TODO:
 // Add various object types:
-// - Connector with start and end point. This one needs to update as a draggable object that it's connected to is dragged
+// - Connector with start and end point. This one needs to update when a draggable object that it's connected to is
+// dragged
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
 //      This would be the base object for data model entities
@@ -21,6 +22,7 @@ class DivbloxCanvas {
         this.canvas_obj = document.getElementById(element_id);
         this.context_obj = null;
         this.objects = {};
+        this.object_ordered_array = [];
         this.active_object = null;
         this.is_mouse_down = false;
         this.drag_start = {x:0,y:0};
@@ -61,17 +63,18 @@ class DivbloxCanvas {
             throw new Error("No object type provided");
         }
         let return_obj = null;
+        const canvas_id = Object.keys(this.objects).length;
         switch(json_obj["type"]) {
             //TODO: When new object types are defined, implement their instantiation in a child class that overrides
             // this method. This child method should pass false to must_handle_error_bool and deal with it
             case 'DivbloxDataListCanvasObject':
-            case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+            case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
             default:
                 if (must_handle_error_bool === true) {console.error("Invalid object type '"+json_obj["type"]+"' provided");}
@@ -106,7 +109,7 @@ class DivbloxCanvas {
         this.context_obj.setTransform(1,0,0,1,0,0);
         this.context_obj.clearRect(0,0,this.canvas_obj.width,this.canvas_obj.height);
         this.context_obj.restore();
-        for (const object_id of Object.keys(this.objects)) {
+        for (const object_id of this.object_ordered_array) {
             const object = this.objects[object_id];
             object.drawObject(this.context_obj);
         }
@@ -136,6 +139,10 @@ class DivbloxCanvas {
             return;
         }
         this.objects[object.getId()] = object;
+        const active_obj_index = this.object_ordered_array.indexOf(object.getId().toString());
+        if (active_obj_index === -1) {
+            this.object_ordered_array.push(object.getId().toString());
+        }
     }
     
     /**
@@ -300,13 +307,9 @@ class DivbloxCanvas {
      * @param must_trigger_click_bool If true, then we trigger the onClick function of the relevant object
      */
     setActiveObject(mouse_down_position = {x:0,y:0},must_trigger_click_bool = false) {
-        if ((this.active_object !== null) && this.is_mouse_down) {
-            // This means we are dragging and we don't want to change the active object
-            console.log("Not setting active object");
-            return;
-        }
         this.active_object = null;
-        for (const object_id of Object.keys(this.objects)) {
+        const reversed_order_array = [...this.object_ordered_array].reverse();
+        for (const object_id of reversed_order_array) {
             const object = this.objects[object_id];
             if ((object.getBoundingRectangle().x1 <= mouse_down_position.x) &&
                 (object.getBoundingRectangle().x2 >= mouse_down_position.x) &&
@@ -315,6 +318,11 @@ class DivbloxCanvas {
                 this.active_object = object;
                 if (must_trigger_click_bool) {
                     this.active_object.onClick();
+                }
+                const active_obj_index = this.object_ordered_array.indexOf(object_id.toString());
+                if (active_obj_index !== (this.object_ordered_array.length - 1)) {
+                    this.object_ordered_array.splice(active_obj_index, 1);
+                    this.object_ordered_array.push(object_id.toString().toString());
                 }
                 break;
             }
@@ -372,8 +380,9 @@ class DivbloxBaseCanvasObject {
      * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
      * @param {{width:number, height:number}} additional_options.dimensions {} An object containing the width and
      * height of this canvas object
-     * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
-     * canvas, but is available to the developer when needed
+     * @param object_data Optional. An object containing data relevant to the object. This data is not necessarily used
+     * on the canvas, but is available to the developer when needed
+     * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
      */
     constructor(draw_start_coords = {x:0,y:0},
                 additional_options =
@@ -382,8 +391,13 @@ class DivbloxBaseCanvasObject {
                         dimensions:
                             {width:100,height:100}
                     },
-                object_data = {}) {
-        this.id = Math.random().toString(20).substr(2, 6);
+                object_data = {},
+                canvas_id = -1) {
+        if (canvas_id === -1) {
+            this.id = Math.random().toString(20).substr(2, 6);
+        } else {
+            this.id = canvas_id;
+        }
         this.x = draw_start_coords.x;
         this.y = draw_start_coords.y;
         this.x_delta = this.x;
@@ -618,8 +632,9 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * bubble at the top right of the circle
      * @param {string} additional_options.notification_bubble_colour A HEX value representing the fill colour for
      * the notification bubble
-     * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
-     * canvas, but is available to the developer when needed
+     * @param object_data Optional. An object containing data relevant to the object. This data is not necessarily used
+     * on the canvas, but is available to the developer when needed
+     * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
      */
     constructor(draw_start_coords = {x:0,y:0},
                 additional_options= {
@@ -628,8 +643,9 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
                     dimensions:
                         {radius:15}
                 },
-                object_data = {}) {
-        super(draw_start_coords, additional_options, object_data);
+                object_data = {},
+                canvas_id = -1) {
+        super(draw_start_coords, additional_options, object_data, canvas_id);
     }
     
     /**
@@ -780,8 +796,9 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
      * bubble at the top right of the rectangle
      * @param {string} additional_options.notification_bubble_colour A HEX value representing the fill colour for
      * the notification bubble
-     * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
-     * canvas, but is available to the developer when needed
+     * @param object_data Optional. An object containing data relevant to the object. This data is not necessarily used
+     * on the canvas, but is available to the developer when needed
+     * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
      */
     constructor(draw_start_coords = {x:0,y:0},
                 additional_options= {
@@ -790,8 +807,9 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
                     dimensions:
                         {width:100,height:100}
                 },
-                object_data = {}) {
-        super(draw_start_coords, additional_options, object_data);
+                object_data = {},
+                canvas_id = -1) {
+        super(draw_start_coords, additional_options, object_data, canvas_id);
     }
     
     /**
