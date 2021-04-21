@@ -1,7 +1,5 @@
 //TODO:
 // Add various object types:
-// - Connector with start and end point. This one needs to update when a draggable object that it's connected to is
-// dragged
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
 //      This would be the base object for data model entities
@@ -23,6 +21,7 @@ class DivbloxCanvas {
         this.context_obj = null;
         this.objects = {};
         this.object_ordered_array = [];
+        this.object_uid_map = {};
         this.active_object = null;
         this.is_mouse_down = false;
         this.drag_start = {x:0,y:0};
@@ -68,18 +67,38 @@ class DivbloxCanvas {
             //TODO: When new object types are defined, implement their instantiation in a child class that overrides
             // this method. This child method should pass false to must_handle_error_bool and deal with it
             case 'DivbloxDataListCanvasObject':
-            case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+            case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+            case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+            case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+            case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
             default:
                 if (must_handle_error_bool === true) {console.error("Invalid object type '"+json_obj["type"]+"' provided");}
         }
         return return_obj;
+    }
+    
+    /**
+     * Returns an instance of an implementation of DivbloxBaseCanvasObject for the given canvas id
+     * @param canvas_id The canvas id to search on
+     * @return {null|*}
+     */
+    getObjectByCanvasId(canvas_id = -1) {
+        if (typeof this.objects[canvas_id] === "undefined") {return null;}
+        return this.objects[canvas_id];
+    }
+    
+    /**
+     * Returns an instance of an implementation of DivbloxBaseCanvasObject for the given unique id
+     * @param uid The unique id to search on
+     * @return {null|*}
+     */
+    getObjectByUid(uid = -1) {
+        if (typeof this.object_uid_map[uid] === "undefined") {return null;}
+        return this.getObjectByCanvasId(this.object_uid_map[uid]);
     }
     
     /**
@@ -139,6 +158,7 @@ class DivbloxCanvas {
             return;
         }
         this.objects[object.getId()] = object;
+        this.object_uid_map[object.getUid()] = object.getId();
         const active_obj_index = this.object_ordered_array.indexOf(object.getId().toString());
         if (active_obj_index === -1) {
             this.object_ordered_array.push(object.getId().toString());
@@ -374,8 +394,11 @@ class DivbloxCanvas {
 class DivbloxBaseCanvasObject {
     /**
      * Initializes the relevant data for the object
+     * @param {*} dx_canvas_obj The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
      * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {string} additional_options.uid An optional, user-specified unique identifier for this object. Used to
+     * link objects to each other
      * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
      * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
      * @param {{width:number, height:number}} additional_options.dimensions {} An object containing the width and
@@ -384,7 +407,8 @@ class DivbloxBaseCanvasObject {
      * on the canvas, but is available to the developer when needed
      * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
      */
-    constructor(draw_start_coords = {x:0,y:0},
+    constructor(dx_canvas_obj = null,
+                draw_start_coords = {x:0,y:0},
                 additional_options =
                     {is_draggable:false,
                         fill_colour:"#000000",
@@ -393,11 +417,14 @@ class DivbloxBaseCanvasObject {
                     },
                 object_data = {},
                 canvas_id = -1) {
+        if (dx_canvas_obj === null) {throw new Error("DivbloxCanvas not provided to DivbloxBaseCanvasObject")}
+        this.dx_canvas_obj = dx_canvas_obj;
         if (canvas_id === -1) {
-            this.id = Math.random().toString(20).substr(2, 6);
+            this.canvas_id = Math.random().toString(20).substr(2, 6);
         } else {
-            this.id = canvas_id;
+            this.canvas_id = canvas_id;
         }
+        this.uid = this.canvas_id;
         this.x = draw_start_coords.x;
         this.y = draw_start_coords.y;
         this.x_delta = this.x;
@@ -407,6 +434,9 @@ class DivbloxBaseCanvasObject {
         this.additional_options = {};
         if (typeof additional_options !== "undefined") {
             this.additional_options = additional_options;
+        }
+        if (typeof this.additional_options["uid"] !== "undefined") {
+            this.uid = this.additional_options["uid"];
         }
         this.object_data = object_data;
         this.show_bounding_box = false; //Debug purposes
@@ -445,11 +475,19 @@ class DivbloxBaseCanvasObject {
     }
     
     /**
-     * Returns the unique id associated with this object
+     * Returns the canvas id associated with this object
      * @return {string}
      */
     getId() {
-        return this.id;
+        return this.canvas_id;
+    }
+    
+    /**
+     * Returns the user-specified unique id associated with this object
+     * @return {string}
+     */
+    getUid() {
+        return this.uid;
     }
     
     /**
@@ -468,13 +506,82 @@ class DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
+        this.drawObjectComponents(context_obj);
+        this.drawObjectConnections(context_obj);
+        if (this.show_bounding_box) {
+            this.drawBoundingBox(context_obj); //Debug purposes
+        }
+    }
+    
+    /**
+     * Draws the canvas components that make up this object
+     * @param context_obj The context object of our canvas
+     */
+    drawObjectComponents(context_obj = null) {
         context_obj.save();
         this.drawShadow(context_obj);
         context_obj.fillStyle = this.fill_colour;
         context_obj.fillRect(this.x,this.y,this.width,this.height);
         context_obj.restore();
-
-        //this.drawBoundingBox(context_obj); //Debug purposes
+    }
+    
+    /**
+     * Draws the connectors from this object to its specified connections
+     * @param context_obj The context object of our canvas
+     */
+    drawObjectConnections(context_obj = null) {
+        if ((typeof this.additional_options["connections"] === "undefined") || (this.additional_options["connections"].length === 0)) {
+            return;
+        }
+        const arrow_head_length = 25;
+        for (const connection_uid of this.additional_options["connections"]) {
+            const connected_obj = this.dx_canvas_obj.getObjectByUid(connection_uid);
+            if (connected_obj === null) {
+                continue;
+            }
+            const connected_obj_bounding_rectangle = connected_obj.getBoundingRectangle();
+            let connector_coords = {
+                x1:this.bounding_rectangle_coords.x1 + ((this.bounding_rectangle_coords.x2 - this.bounding_rectangle_coords.x1) / 2),
+                y1:this.bounding_rectangle_coords.y1 + ((this.bounding_rectangle_coords.y2 - this.bounding_rectangle_coords.y1) / 2),
+                x2:connected_obj_bounding_rectangle.x1 + ((connected_obj_bounding_rectangle.x2 - connected_obj_bounding_rectangle.x1) / 2),
+                y2:connected_obj_bounding_rectangle.y1 + ((connected_obj_bounding_rectangle.y2 - connected_obj_bounding_rectangle.y1) / 2),
+                arrow_x:0,
+                arrow_y:0};
+            
+            if (connected_obj_bounding_rectangle.y1 > this.bounding_rectangle_coords.y2) {
+                // This means the connected object is below the current object
+                connector_coords.y1 = this.bounding_rectangle_coords.y2;
+                connector_coords.y2 = connected_obj_bounding_rectangle.y1;
+            } else if (connected_obj_bounding_rectangle.y2 < this.bounding_rectangle_coords.y1) {
+                connector_coords.y1 = this.bounding_rectangle_coords.y1;
+                connector_coords.y2 = connected_obj_bounding_rectangle.y2;
+            } else {
+                // Deal with left or right side, since this connects is level with the current object
+                if (connected_obj_bounding_rectangle.x1 > this.bounding_rectangle_coords.x2) {
+                    connector_coords.x1 = this.bounding_rectangle_coords.x2;
+                    connector_coords.x2 = connected_obj_bounding_rectangle.x1;
+                } else if (connected_obj_bounding_rectangle.x2 < this.bounding_rectangle_coords.x1) {
+                    connector_coords.x1 = this.bounding_rectangle_coords.x1;
+                    connector_coords.x2 = connected_obj_bounding_rectangle.x2;
+                }
+            }
+            context_obj.save();
+            context_obj.lineWidth = 1;
+            context_obj.beginPath();
+            context_obj.moveTo(connector_coords.x1, connector_coords.y1);
+            context_obj.quadraticCurveTo(
+                1.02*(connector_coords.x1 + ((connector_coords.x2 - connector_coords.x1) / 2)),
+                1.02*(connector_coords.y1 + ((connector_coords.y2 - connector_coords.y1) / 2)),
+                connector_coords.x2,
+                connector_coords.y2);
+            context_obj.stroke();
+            context_obj.closePath();
+            context_obj.restore();
+            
+            let arrow_angle = Math.atan((connector_coords.y2 - connector_coords.y1) / (connector_coords.x2 - connector_coords.x1));
+            arrow_angle += ((connector_coords.x2 > connector_coords.x1) ? 90 : -90) * Math.PI/180;
+            dx_helpers.drawArrowhead(context_obj, connector_coords.x2, connector_coords.y2, arrow_angle, arrow_head_length);
+        }
     }
     
     /**
@@ -585,11 +692,12 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.html_image.src = data;
         this.updateBoundingCoords();
     }
+    
     /**
      * This base class draws the html provided onto the canvas
      * @param context_obj The context object of our canvas
      */
-    drawObject(context_obj = null) {
+    drawObjectComponents(context_obj = null) {
         //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
         if (context_obj === null) {
             throw new Error("No context provided for object");
@@ -597,8 +705,6 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         context_obj.save();
         context_obj.drawImage(this.html_image,this.x,this.y);
         context_obj.restore();
-
-        //this.drawBoundingBox(context_obj); //Debug purposes
     }
 }
 
@@ -621,8 +727,11 @@ class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
 class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
     /**
      * Initializes the relevant data for the object
+     * @param {*} dx_canvas_obj The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
      * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {string} additional_options.uid An optional, user-specified unique identifier for this object. Used to
+     * link objects to each other
      * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
      * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
      * @param {{radius:number}} additional_options.dimensions {} An object containing the radius of this canvas object
@@ -636,7 +745,8 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * on the canvas, but is available to the developer when needed
      * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
      */
-    constructor(draw_start_coords = {x:0,y:0},
+    constructor(dx_canvas_obj = null,
+                draw_start_coords = {x:0,y:0},
                 additional_options= {
                     is_draggable:false,
                     fill_colour:"#000000",
@@ -645,7 +755,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
                 },
                 object_data = {},
                 canvas_id = -1) {
-        super(draw_start_coords, additional_options, object_data, canvas_id);
+        super(dx_canvas_obj,draw_start_coords, additional_options, object_data, canvas_id);
     }
     
     /**
@@ -688,7 +798,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * Draws the circle on the canvas
      * @param context_obj The context object of our canvas
      */
-    drawObject(context_obj = null) {
+    drawObjectComponents(context_obj = null) {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
@@ -765,8 +875,6 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.drawImage(img,img_coords.x,img_coords.y,width/2,height/2);
             context_obj.restore();
         }
-        
-        //this.drawBoundingBox(context_obj);
     }
 }
 
@@ -780,8 +888,11 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
 class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
     /**
      * Initializes the relevant data for the object
+     * @param {*} dx_canvas_obj The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
      * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {string} additional_options.uid An optional, user-specified unique identifier for this object. Used to
+     * link objects to each other
      * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
      * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
      * @param {{width:number,height:number}} additional_options.dimensions {} An object containing the radius of this
@@ -800,7 +911,8 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
      * on the canvas, but is available to the developer when needed
      * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
      */
-    constructor(draw_start_coords = {x:0,y:0},
+    constructor(dx_canvas_obj = null,
+                draw_start_coords = {x:0,y:0},
                 additional_options= {
                     is_draggable:false,
                     fill_colour:"#000000",
@@ -809,7 +921,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
                 },
                 object_data = {},
                 canvas_id = -1) {
-        super(draw_start_coords, additional_options, object_data, canvas_id);
+        super(dx_canvas_obj,draw_start_coords, additional_options, object_data, canvas_id);
     }
     
     /**
@@ -834,7 +946,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
      * Draws the rectangle on the canvas
      * @param context_obj The context object of our canvas
      */
-    drawObject(context_obj = null) {
+    drawObjectComponents(context_obj = null) {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
@@ -931,14 +1043,17 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.fillText(this.additional_options["text"],text_coords.x,text_coords.y);
             context_obj.restore();
         }
-        
-        //this.drawBoundingBox(context_obj);
     }
 }
 //#endregion
 
 //#region Helper functions
 const dx_helpers = {
+    /**
+     * Converts the given html to a valid xml string
+     * @param html The html to convert
+     * @return {string}
+     */
     htmlToXml(html) {
         const doc = document.implementation.createHTMLDocument('');
         doc.write(html);
@@ -949,6 +1064,26 @@ const dx_helpers = {
         // Get well-formed markup
         html = (new XMLSerializer).serializeToString(doc.body);
         return html;
+    },
+    /**
+     * Draws an arrowhead on a canvas
+     * @param context_obj
+     * @param x The x coordinate of the arrow's tip
+     * @param y The y coordinate of the arrow's tip
+     * @param radians The angle of the arrowhead in radians
+     * @param arrow_length The length of the arrowhead
+     */
+    drawArrowhead(context_obj,x,y,radians,arrow_length = 25) {
+        context_obj.save();
+        context_obj.beginPath();
+        context_obj.translate(x,y);
+        context_obj.rotate(radians);
+        context_obj.moveTo(0,0);
+        context_obj.lineTo(10,arrow_length);
+        context_obj.lineTo(-10,arrow_length);
+        context_obj.closePath();
+        context_obj.restore();
+        context_obj.fill();
     }
 }
 //#endregion

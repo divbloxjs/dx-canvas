@@ -7,7 +7,7 @@ class MyCustomCanvas extends DivbloxCanvas {
         const canvas_id = Object.keys(this.objects).length;
         if (return_obj === null) {
             switch(json_obj["type"]) {
-                case 'MyCustomCanvasObject': return_obj = new MyCustomCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+                case 'MyCustomCanvasObject': return_obj = new MyCustomCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                     break;
                 default:
                     console.error("Invalid object type '"+json_obj["type"]+"' provided");

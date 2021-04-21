@@ -4,6 +4,7 @@
     "x": 200,
     "y": 200,
     "additional_options": {
+      "uid": "1",
       "is_draggable":true,
       "fill_colour": "#00EEA6",
       "dimensions": {
