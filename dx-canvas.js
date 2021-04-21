@@ -1,7 +1,5 @@
 //TODO:
 // Add various object types:
-// - Basic circle with fill and text and perhaps icon
-// - Basic rectangle with fill and text and perhaps icon
 // - Connector with start and end point. This one needs to update as a draggable object that it's connected to is dragged
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
@@ -72,6 +70,8 @@ class DivbloxCanvas {
             case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
                 break;
             case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
+                break;
+            case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject({x:json_obj.x,y:json_obj.y},json_obj["additional_options"]);
                 break;
             default:
                 if (must_handle_error_bool === true) {console.error("Invalid object type '"+json_obj["type"]+"' provided");}
@@ -597,8 +597,8 @@ class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
 }
 
 /**
- * The DivbloxBaseCircleCanvasObject is basically a circle that is filled with a specified colour, has an optional image or text in
- * its center and also has an optional indicator on its top right
+ * The DivbloxBaseCircleCanvasObject is basically a circle that is filled with a specified colour, has an optional image
+ * in its center and also has an optional notification indicator at its top right
  *   _[x]
  * / x \
  * \__/
@@ -626,7 +626,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
                     is_draggable:false,
                     fill_colour:"#000000",
                     dimensions:
-                        {width:100,height:100}
+                        {radius:15}
                 },
                 object_data = {}) {
         super(draw_start_coords, additional_options, object_data);
@@ -747,6 +747,170 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             img.src = this.additional_options["image"];
             context_obj.save();
             context_obj.drawImage(img,img_coords.x,img_coords.y,width/2,height/2);
+            context_obj.restore();
+        }
+        
+        //this.drawBoundingBox(context_obj);
+    }
+}
+
+/**
+ * The DivbloxBaseRectangleCanvasObject is basically a rectangle that is filled with a specified colour, has an optional
+ * image or text in its center and also has an optional notification indicator at its top right
+ *  ________[x]
+ * | abcdef |
+ * ---------
+ */
+class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
+    /**
+     * Initializes the relevant data for the object
+     * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
+     * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
+     * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
+     * @param {{width:number,height:number}} additional_options.dimensions {} An object containing the radius of this
+     * canvas object
+     * @param {string} additional_options.text {} Optional. The text that should be displayed in the
+     * center of the rectangle
+     * @param {string} additional_options.text_colour {} Optional. A HEX value representing the colour of the text
+     * to display
+     * @param {string} additional_options.image {} Optional. The path to the image that should be displayed in the
+     * center of the rectangle
+     * @param {number} additional_options.notification_count {} Optional. A number to display in a notification
+     * bubble at the top right of the rectangle
+     * @param {string} additional_options.notification_bubble_colour A HEX value representing the fill colour for
+     * the notification bubble
+     * @param object_data An object containing data relevant to the object. This data is not necessarily used on the
+     * canvas, but is available to the developer when needed
+     */
+    constructor(draw_start_coords = {x:0,y:0},
+                additional_options= {
+                    is_draggable:false,
+                    fill_colour:"#000000",
+                    dimensions:
+                        {width:100,height:100}
+                },
+                object_data = {}) {
+        super(draw_start_coords, additional_options, object_data);
+    }
+    
+    /**
+     * Initializes the relevant variables for this object
+     */
+    initializeObject() {
+        this.notification_bubble_radius = 0;
+        this.notification_bubble_colour = '#FF0000';
+        super.initializeObject();
+        this.notification_bubble_radius = Math.round(this.height * 0.25);
+        this.notification_bubble_coords = {
+            x:this.x + this.width,
+            y:this.y
+        };
+        if (typeof this.additional_options["notification_bubble_colour"] !== "undefined") {
+            this.notification_bubble_colour = this.additional_options["notification_bubble_colour"];
+        }
+        this.updateBoundingCoords();
+    }
+    
+    /**
+     * Draws the rectangle on the canvas
+     * @param context_obj The context object of our canvas
+     */
+    drawObject(context_obj = null) {
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        // Update the notification bubble's coordinates from the main object's
+        this.notification_bubble_coords = {
+            x:this.x + this.width,
+            y:this.y
+        };
+        // Start drawing the main object
+        context_obj.save();
+        
+        this.drawShadow(context_obj);
+        
+        context_obj.beginPath();
+        context_obj.rect(this.x, this.y, this.width, this.height);
+        context_obj.fillStyle = this.fill_colour;
+        context_obj.fill();
+        context_obj.closePath();
+        context_obj.restore();
+        
+        // If we have notifications count higher than 0, let's draw the notification bubble
+        if ((typeof this.additional_options["notification_count"] !== "undefined") && (this.additional_options["notification_count"] > 0)) {
+            // Let's draw the notification counter and its containing bubble
+            context_obj.save();
+            
+            const counter_text = this.additional_options["notification_count"];
+            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
+            
+            const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
+                Math.floor(context_obj.measureText(counter_text).width - (this.notification_bubble_radius / 2)) : 0;
+            
+            const bubble_arc_coords = {
+                x1:this.notification_bubble_coords.x,
+                y1:this.notification_bubble_coords.y,
+                x2:this.notification_bubble_coords.x + counter_text_width,
+                y2:this.notification_bubble_coords.y};
+            
+            context_obj.fillStyle = this.notification_bubble_colour;
+            
+            context_obj.beginPath();
+            context_obj.moveTo(bubble_arc_coords.x1, bubble_arc_coords.y1);
+            context_obj.arc(bubble_arc_coords.x1, bubble_arc_coords.y1, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),true);
+            context_obj.fill();
+            context_obj.closePath();
+            context_obj.beginPath();
+            context_obj.moveTo(bubble_arc_coords.x2, bubble_arc_coords.y2);
+            context_obj.arc(bubble_arc_coords.x2, bubble_arc_coords.y2, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),false);
+            context_obj.fill();
+            context_obj.closePath();
+            
+            context_obj.beginPath();
+            context_obj.rect(bubble_arc_coords.x1 - 0.5, bubble_arc_coords.y1 - this.notification_bubble_radius, counter_text_width + 0.75, this.notification_bubble_radius * 2);
+            context_obj.fill();
+            
+            let text_coords = {
+                x:(bubble_arc_coords.x1 + bubble_arc_coords.x2) / 2,
+                y:Math.ceil(this.notification_bubble_coords.y + (this.notification_bubble_radius / 4))}
+            
+            context_obj.fillStyle = '#fff';
+            context_obj.textAlign = 'center';
+            context_obj.fillText(counter_text, text_coords.x, text_coords.y);
+            
+            context_obj.restore();
+        }
+        
+        // Let's add the provided image (if any) to the center of the rectangle
+        if (typeof this.additional_options["image"] !== "undefined") {
+            const img_coords = {x:this.bounding_rectangle_coords.x1+this.width/4,y:this.bounding_rectangle_coords.y1+this.height/4}
+            const img = new Image();
+            img.src = this.additional_options["image"];
+            context_obj.save();
+            context_obj.drawImage(img,img_coords.x,img_coords.y,this.width/2,this.height/2);
+            context_obj.restore();
+        }
+        
+        // Let's add the provided text (if any) to the center of the rectangle
+        if (typeof this.additional_options["text"] !== "undefined") {
+            const max_font_size = this.height / 4;
+            let font_size = max_font_size;
+            context_obj.font = "small-caps bold "+font_size+"px arial";
+            let text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
+            while (text_width > (this.width * 0.8)) {
+                font_size = font_size - 0.5;
+                context_obj.font = "small-caps bold "+font_size+"px arial";
+                text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
+            }
+            const text_coords = {x:this.x + (this.width / 2),y: this.y + (this.height / 2) + (font_size / 4)};
+            context_obj.save();
+            context_obj.fillStyle = '#000';
+            if (typeof this.additional_options["text_colour"] !== "undefined") {
+                context_obj.fillStyle = this.additional_options["text_colour"];
+            }
+            context_obj.textAlign = 'center';
+            context_obj.fillText(this.additional_options["text"],text_coords.x,text_coords.y);
             context_obj.restore();
         }
         
