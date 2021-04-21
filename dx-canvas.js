@@ -676,10 +676,12 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
+        // Update the notification bubble's coordinates from the main object's
         this.notification_bubble_coords = {
             x:this.x + (this.radius * Math.cos(315 * (Math.PI/180))),
             y:this.y + (this.radius * Math.sin(315 * (Math.PI/180)))
         };
+        // Start drawing the main object
         context_obj.save();
         
         this.drawShadow(context_obj);
@@ -691,6 +693,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         context_obj.fill();
         context_obj.restore();
         
+        // If we have notifications count higher than 0, let's draw the notification bubble
         if ((typeof this.additional_options["notification_count"] !== "undefined") && (this.additional_options["notification_count"] > 0)) {
             // Let's draw the notification counter and its containing bubble
             context_obj.save();
@@ -734,6 +737,8 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             
             context_obj.restore();
         }
+        
+        // Let's add the provided image (if any) to the center of the circle
         if (typeof this.additional_options["image"] !== "undefined") {
             const width = this.bounding_rectangle_coords.x2 - this.bounding_rectangle_coords.x1;
             const height = this.bounding_rectangle_coords.y2 - this.bounding_rectangle_coords.y1;
