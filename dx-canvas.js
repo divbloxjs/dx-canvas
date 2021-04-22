@@ -1,8 +1,10 @@
 //TODO:
+// Make the DivbloxBaseRectangleCanvasObject's corners rounded if required
 // Add various object types:
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
 //      This would be the base object for data model entities
+// The ability to save the current model to a json file for later usage
 // Find a way to build the input json from a logical flow of data
 
 //#region The core DivbloxCanvas functionality
@@ -922,6 +924,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
                 object_data = {},
                 canvas_id = -1) {
         super(dx_canvas_obj,draw_start_coords, additional_options, object_data, canvas_id);
+        this.corner_radius = {top_left: 10, top_right: 10, bottom_right: 10, bottom_left: 10};
     }
     
     /**
@@ -961,7 +964,15 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         this.drawShadow(context_obj);
         
         context_obj.beginPath();
-        context_obj.rect(this.x, this.y, this.width, this.height);
+        context_obj.moveTo(this.x + this.corner_radius.top_left, this.y);
+        context_obj.lineTo(this.x + this.width - this.corner_radius.top_right, this.y);
+        context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + this.corner_radius.top_right);
+        context_obj.lineTo(this.x + this.width, this.y + this.height - this.corner_radius.bottom_right);
+        context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - this.corner_radius.bottom_right, this.y + this.height);
+        context_obj.lineTo(this.x + this.corner_radius.bottom_left, this.y + this.height);
+        context_obj.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - this.corner_radius.bottom_left);
+        context_obj.lineTo(this.x, this.y + this.corner_radius.top_left);
+        context_obj.quadraticCurveTo(this.x, this.y, this.x + this.corner_radius.top_left, this.y);
         context_obj.fillStyle = this.fill_colour;
         context_obj.fill();
         context_obj.closePath();
