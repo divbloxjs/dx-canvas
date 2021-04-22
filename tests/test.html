@@ -7,14 +7,14 @@
             padding: 0px;
         }
         #dxCanvasWrapper {
-            width: 90vw;
-            height: 90vh;
-            border:1px solid black;
+            width: 100vw;
+            height: 100vh;
+            /*border:1px solid black;*/
         }
         #dxCanvasWrapper >canvas {
             /*width:100%;*/
             /*height:100%;*/
-            border:1px solid red;
+            /*border:1px solid red;*/
         }
     </style>
 </head>
@@ -42,7 +42,7 @@
     async function initCanvas() {
         const response = await fetch(root_str+'test.json');
         const data_json = await response.json();
-        const dx_canvas = new MyCustomCanvas('dxCanvas',data_json,"../");
+        const dx_canvas = new MyCustomCanvas('dxCanvas',data_json,{dx_canvas_root:"../",background_color:"rgba(40,141,34,0.13)"});
     }
     initCanvas();
 </script>

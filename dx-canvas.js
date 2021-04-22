@@ -6,6 +6,11 @@
 // The ability to save the current model to a json file for later usage
 // Find a way to build the input json from a logical flow of data
 // Fix the canvas zoom bug when using data list content
+/**
+ * If set to true, more logging will happen and certain elements will be drawn on the screen to aid debugging
+ * @type {boolean}
+ */
+const dx_canvas_debug_mode = true;
 
 //#region The core DivbloxCanvas functionality
 /**
@@ -17,9 +22,12 @@ class DivbloxCanvas {
      * in the objects array
      * @param element_id The id of the html element that describes the canvas
      * @param objects An array of objects to initialize on the canvas. See tests/test.json for an example
-     * @param dx_canvas_root The path to the root of dx-canvas.js. Needed to reference local assets
+     * @param options Additional options to pass
+     * @param {string} options.dx_canvas_root  The path to the root of dx-canvas.js. Needed to reference local
+     * assets
+     * @param {string} options.background_color A HEX value that represents the background color of the canvas
      */
-    constructor(element_id = "dxCanvas",objects = [],dx_canvas_root = "/") {
+    constructor(element_id = "dxCanvas",objects = [],options = {}) {
         this.canvas_obj = document.getElementById(element_id);
         this.context_obj = null;
         this.objects = {};
@@ -33,7 +41,14 @@ class DivbloxCanvas {
         this.is_dragging = false;
         this.zoom_factor = 0.02;
         this.zoom_current = 0;
-        this.root_path = dx_canvas_root;
+        this.root_path = "/";
+        if (typeof options["dx_canvas_root"] !== "undefined") {
+            this.root_path = options["dx_canvas_root"];
+        }
+        this.background_color = "#fff";
+        if (typeof options["background_color"] !== "undefined") {
+            this.background_color = options["background_color"];
+        }
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
         this.canvas_obj.width = this.canvas_obj.parentElement.clientWidth;
@@ -140,6 +155,27 @@ class DivbloxCanvas {
         this.context_obj.setTransform(1,0,0,1,0,0);
         this.context_obj.clearRect(0,0,this.canvas_obj.width,this.canvas_obj.height);
         this.context_obj.restore();
+       
+        this.context_obj.save();
+        const rect = this.canvas_obj.getBoundingClientRect();
+        const transform = this.context_obj.getTransform();
+        const rect_transformed =  {
+            left:(rect.left - transform.e) / transform.a,
+            top:(rect.top - transform.f) / transform.d,
+            right:(rect.right - transform.e) / transform.a,
+            bottom:(rect.bottom - transform.f) / transform.d,
+        };
+        this.context_obj.beginPath();
+        this.context_obj.moveTo(rect_transformed.left,rect_transformed.top);
+        this.context_obj.lineTo(rect_transformed.right,rect_transformed.top);
+        this.context_obj.lineTo(rect_transformed.right,rect_transformed.bottom);
+        this.context_obj.lineTo(rect_transformed.left,rect_transformed.bottom);
+        this.context_obj.lineTo(rect_transformed.left,rect_transformed.top);
+        this.context_obj.fillStyle = this.background_color;
+        this.context_obj.fill();
+        this.context_obj.closePath();
+        this.context_obj.restore();
+        
         for (const object_id of this.object_ordered_array) {
             const object = this.objects[object_id];
             object.drawObject(this.context_obj);
@@ -396,7 +432,6 @@ class DivbloxCanvas {
             this.zoom_current -= this.zoom_factor;
         }
         this.context_obj.scale(zoom_factor,zoom_factor);
-        console.log("Current zoom : "+this.zoom_current);
     }
 }
 //#endregion
@@ -1114,12 +1149,19 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
     getScreenCoordinates(context_obj = null) {
         const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
         const transform = context_obj.getTransform();
-        return {
-            x1:transform.a*(this.bounding_rectangle_coords.x1 + rect.left + transform.e),
-            y1:transform.d*(this.bounding_rectangle_coords.y3 + rect.top + transform.f),
-            x2:transform.a*(this.bounding_rectangle_coords.x2 + rect.left + transform.e),
-            y2:transform.d*(this.bounding_rectangle_coords.y2 + rect.top + transform.f),
+        const rect_transformed =  {
+            left:(rect.left + transform.e) / transform.a,
+            top:(rect.top + transform.f) / transform.d,
+            right:(rect.right + transform.e) / transform.a,
+            bottom:(rect.bottom + transform.f) / transform.d,
         };
+        const screen_coords =  {
+            x1:transform.a*(this.bounding_rectangle_coords.x1 + rect_transformed.left),
+            y1:transform.d*(this.bounding_rectangle_coords.y3 + rect_transformed.top),
+            x2:transform.a*(this.bounding_rectangle_coords.x2 + rect_transformed.left),
+            y2:transform.d*(this.bounding_rectangle_coords.y2 + rect_transformed.top),
+        };
+        return screen_coords;
     }
     
     /**
@@ -1287,10 +1329,17 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
      */
     validateExpansionAllowed() {
         const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
-        if ((this.bounding_rectangle_coords.x1 < rect.left) ||
-            (this.bounding_rectangle_coords.x2 > rect.right) ||
-            (this.bounding_rectangle_coords.y1 < rect.top) ||
-            (this.bounding_rectangle_coords.y2 > rect.bottom)) {
+        const transform = this.dx_canvas_obj.context_obj.getTransform();
+        const rect_transformed =  {
+            left:(rect.left - transform.e) / transform.a,
+            top:(rect.top - transform.f) / transform.d,
+            right:(rect.right - transform.e) / transform.a,
+            bottom:(rect.bottom - transform.f) / transform.d,
+        };
+        if ((this.bounding_rectangle_coords.x1 < rect_transformed.left) ||
+            (this.bounding_rectangle_coords.x2 > rect_transformed.right) ||
+            (this.bounding_rectangle_coords.y1 < rect_transformed.top) ||
+            (this.bounding_rectangle_coords.y2 > rect_transformed.bottom)) {
             return false;
         }
         return true

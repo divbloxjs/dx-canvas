@@ -32,7 +32,7 @@
       "text": "This is a nice title",
       "text_colour": "#000000",
       "image": "http://via.placeholder.com/150",
-      "notification_count": 6,
+      "notification_count": 0,
       "notification_bubble_colour": "#FF0000",
       "connections": ["3"]
     },
