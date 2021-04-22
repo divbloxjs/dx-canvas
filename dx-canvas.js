@@ -2,9 +2,10 @@
 // Add various object types:
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
-//      This would be the base object for data model entities
+//      This could be the base object for data model entities
 // The ability to save the current model to a json file for later usage
 // Find a way to build the input json from a logical flow of data
+// Fix the canvas zoom bug when using data list content
 
 //#region The core DivbloxCanvas functionality
 /**
@@ -16,8 +17,9 @@ class DivbloxCanvas {
      * in the objects array
      * @param element_id The id of the html element that describes the canvas
      * @param objects An array of objects to initialize on the canvas. See tests/test.json for an example
+     * @param dx_canvas_root The path to the root of dx-canvas.js. Needed to reference local assets
      */
-    constructor(element_id = "dxCanvas",objects = []) {
+    constructor(element_id = "dxCanvas",objects = [],dx_canvas_root = "/") {
         this.canvas_obj = document.getElementById(element_id);
         this.context_obj = null;
         this.objects = {};
@@ -30,6 +32,8 @@ class DivbloxCanvas {
         this.drag_translate_factor = 1;
         this.is_dragging = false;
         this.zoom_factor = 0.02;
+        this.zoom_current = 0;
+        this.root_path = dx_canvas_root;
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
         this.canvas_obj.width = this.canvas_obj.parentElement.clientWidth;
@@ -67,14 +71,13 @@ class DivbloxCanvas {
         switch(json_obj["type"]) {
             //TODO: When new object types are defined, implement their instantiation in a child class that overrides
             // this method. This child method should pass false to must_handle_error_bool and deal with it
-            case 'DivbloxDataListCanvasObject':
             case 'DivbloxBaseCanvasObject': return_obj = new DivbloxBaseCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
-                break;
-            case 'DivbloxBaseHtmlCanvasObject': return_obj = new DivbloxBaseHtmlCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
             case 'DivbloxBaseCircleCanvasObject': return_obj = new DivbloxBaseCircleCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
             case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+                break;
+            case 'DivbloxBaseDataListCanvasObject':return_obj = new DivbloxBaseDataListCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
             default:
                 if (must_handle_error_bool === true) {console.error("Invalid object type '"+json_obj["type"]+"' provided");}
@@ -119,6 +122,14 @@ class DivbloxCanvas {
     getContext() {
         this.setContext();
         return this.context_obj;
+    }
+    
+    /**
+     * Returns the path to the root of dx-canvas.js.
+     * @return {string} The path as a string
+     */
+    getDxCanvasRoot() {
+        return this.root_path;
     }
     
     /**
@@ -380,8 +391,12 @@ class DivbloxCanvas {
         let zoom_factor = 1-this.zoom_factor;
         if (direction < 0) {
             zoom_factor = 1+this.zoom_factor;
+            this.zoom_current += this.zoom_factor;
+        } else {
+            this.zoom_current -= this.zoom_factor;
         }
         this.context_obj.scale(zoom_factor,zoom_factor);
+        console.log("Current zoom : "+this.zoom_current);
     }
 }
 //#endregion
@@ -714,7 +729,7 @@ class DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
-        context_obj.shadowColor = "#0000000f";
+        context_obj.shadowColor = "#0000001F";
         context_obj.shadowBlur = 10;
         context_obj.shadowOffsetX = 0;
         context_obj.shadowOffsetY = 0;
@@ -743,52 +758,22 @@ class DivbloxBaseCanvasObject {
         context_obj.stroke();
         context_obj.restore();
     }
-}
-
-/**
- * The DivbloxBaseHtmlCanvasObject attempts to render a piece of HTML on the canvas
- */
-class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
-    /**
-     * Initializes the relevant variables for this object
-     */
-    initializeObject() {
-        super.initializeObject();
-        if (typeof this.additional_options["html_to_render"] === "undefined") {
-            throw new Error("No html provided");
-        }
-        const data = 'data:image/svg+xml;charset=utf-8,' +
-            '<svg xmlns="http://www.w3.org/2000/svg" width="' + this.width + '" height="' + this.height + '">' +
-            '<foreignObject width="100%" height="100%">' +
-            dx_helpers.htmlToXml(this.additional_options["html_to_render"]) +
-            '</foreignObject>' +
-            '</svg>';
-        this.html_image = new Image();
-        this.html_image.src = data;
-        this.updateBoundingCoords();
-    }
     
     /**
-     * This base class draws the html provided onto the canvas
+     * Returns the actual screen coordinates for this object
      * @param context_obj The context object of our canvas
+     * @return {{y1: number, x1: number, y2: number, x2: number}}
      */
-    drawObjectComponents(context_obj = null) {
-        //The base class simply draws a rectangle, but this function should be overridden for more complex shapes
-        if (context_obj === null) {
-            throw new Error("No context provided for object");
-        }
-        context_obj.save();
-        context_obj.drawImage(this.html_image,this.x,this.y);
-        context_obj.restore();
+    getScreenCoordinates(context_obj = null) {
+        const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
+        const transform = context_obj.getTransform();
+        return {
+            x1:transform.a*(this.bounding_rectangle_coords.x1 + rect.left + transform.e),
+            y1:transform.d*(this.bounding_rectangle_coords.y1 + rect.top + transform.f),
+            x2:transform.a*(this.bounding_rectangle_coords.x2 + rect.left + transform.e),
+            y2:transform.d*(this.bounding_rectangle_coords.y2 + rect.top + transform.f),
+        };
     }
-}
-
-/**
- * The DivbloxDataListCanvasObject attempts to display an interactive HTML list, contained inside a <div> element as
- * an overlay on the canvas
- */
-class DivbloxDataListCanvasObject extends DivbloxBaseCanvasObject {
-    //TODO: Implement this class
 }
 
 /**
@@ -881,9 +866,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         }
         // Start drawing the main object
         context_obj.save();
-        
         this.drawShadow(context_obj);
-        
         context_obj.beginPath();
         context_obj.moveTo(this.x, this.y);
         context_obj.arc(this.x,this.y,this.radius,0,Math.PI * 2,true);
@@ -922,8 +905,8 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
      * link objects to each other
      * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
      * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
-     * @param {{width:number,height:number}} additional_options.dimensions {} An object containing the radius of this
-     * canvas object
+     * @param {{width:number,height:number}} additional_options.dimensions {} An object containing the dimensions of
+     * this canvas object
      * @param {string} additional_options.text {} Optional. The text that should be displayed in the
      * center of the rectangle
      * @param {string} additional_options.text_colour {} Optional. A HEX value representing the colour of the text
@@ -950,6 +933,8 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
                 canvas_id = -1) {
         super(dx_canvas_obj,draw_start_coords, additional_options, object_data, canvas_id);
         this.corner_radius = {top_left: 10, top_right: 10, bottom_right: 10, bottom_left: 10};
+        this.corner_radius = {top_left: 10, top_right: 10, bottom_right: 10, bottom_left: 10};
+        // These values are percentages of the smallest side of the rectangle
     }
     
     /**
@@ -963,19 +948,24 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         
         // Start drawing the main object
         context_obj.save();
-        
         this.drawShadow(context_obj);
-        
+        const border_radius_delta = this.width > this.height ? this.height : this.width;
+        const relative_radius = {
+            top_left:border_radius_delta * (this.corner_radius.top_left / 100),
+            top_right:border_radius_delta * (this.corner_radius.top_right / 100),
+            bottom_right:border_radius_delta * (this.corner_radius.bottom_right / 100),
+            bottom_left:border_radius_delta * (this.corner_radius.bottom_left / 100)
+        }
         context_obj.beginPath();
-        context_obj.moveTo(this.x + this.corner_radius.top_left, this.y);
-        context_obj.lineTo(this.x + this.width - this.corner_radius.top_right, this.y);
-        context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + this.corner_radius.top_right);
-        context_obj.lineTo(this.x + this.width, this.y + this.height - this.corner_radius.bottom_right);
-        context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - this.corner_radius.bottom_right, this.y + this.height);
-        context_obj.lineTo(this.x + this.corner_radius.bottom_left, this.y + this.height);
-        context_obj.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - this.corner_radius.bottom_left);
-        context_obj.lineTo(this.x, this.y + this.corner_radius.top_left);
-        context_obj.quadraticCurveTo(this.x, this.y, this.x + this.corner_radius.top_left, this.y);
+        context_obj.moveTo(this.x + relative_radius.top_left, this.y);
+        context_obj.lineTo(this.x + this.width - relative_radius.top_right, this.y);
+        context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + relative_radius.top_right);
+        context_obj.lineTo(this.x + this.width, this.y + this.height - relative_radius.bottom_right);
+        context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - relative_radius.bottom_right, this.y + this.height);
+        context_obj.lineTo(this.x + relative_radius.bottom_left, this.y + this.height);
+        context_obj.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - relative_radius.bottom_left);
+        context_obj.lineTo(this.x, this.y + relative_radius.top_left);
+        context_obj.quadraticCurveTo(this.x, this.y, this.x + relative_radius.top_left, this.y);
         context_obj.fillStyle = this.fill_colour;
         context_obj.fill();
         context_obj.closePath();
@@ -1012,6 +1002,294 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.fillText(this.additional_options["text"],text_coords.x,text_coords.y);
             context_obj.restore();
         }
+    }
+}
+
+/**
+ * The DivbloxDataListCanvasObject attempts to display an interactive HTML list, contained inside a <div> element as
+ * an overlay on the canvas
+ */
+class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
+    /**
+     * Initializes the relevant data for the object
+     * @param {*} dx_canvas_obj The instance of the DivbloxCanvas object that controls the canvas
+     * @param {{x: number, y: number}} draw_start_coords The x and y coordinates where this object is drawn from
+     * @param additional_options Options specific to this object and how it is drawn and handled on the canvas
+     * @param {string} additional_options.uid An optional, user-specified unique identifier for this object. Used to
+     * link objects to each other
+     * @param {boolean} additional_options.is_draggable If true, this object is draggable on the canvas
+     * @param {string} additional_options.fill_colour A HEX value representing the fill colour for the object
+     * @param {{width:number,height:number}} additional_options.dimensions {} An object containing the dimensions of
+     * this canvas object
+     * @param {{width:number,height:number}} additional_options.dimensions.expanded_dimensions {} An object
+     * containing the dimensions of the object when it is expanded
+     * @param {string} additional_options.text {} Optional. The text that should be displayed in the
+     * center of the rectangle
+     * @param {string} additional_options.text_colour {} Optional. A HEX value representing the colour of the text
+     * to display
+     * @param {string} additional_options.image {} Optional. The path to the image that should be displayed in the
+     * center of the rectangle
+     * @param {number} additional_options.notification_count {} Optional. A number to display in a notification
+     * bubble at the top right of the rectangle
+     * @param {string} additional_options.notification_bubble_colour A HEX value representing the fill colour for
+     * the notification bubble
+     * @param {string} additional_options.list_content_element_id The element id of the html div containing our list
+     * data that should be displayed when expanded
+     * @param object_data Optional. An object containing data relevant to the object. This data is not necessarily used
+     * on the canvas, but is available to the developer when needed
+     * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
+     */
+    constructor(dx_canvas_obj = null,
+                draw_start_coords = {x:0,y:0},
+                additional_options= {
+                    is_draggable:false,
+                    fill_colour:"#000000",
+                    dimensions: {
+                            width:100,
+                            height:100,
+                            expanded_dimensions: {
+                                width:200,
+                                height:200
+                            }
+                        }
+                },
+                object_data = {},
+                canvas_id = -1) {
+        super(dx_canvas_obj,draw_start_coords, additional_options, object_data, canvas_id);
+        this.corner_radius = {top_left: 10, top_right: 10, bottom_right: 10, bottom_left: 10};
+        // These values are percentages of the smallest side of the rectangle
+    }
+    initializeObject() {
+        this.is_expanded_bool = false;
+        this.expanded_height = 0;
+        this.content_padding = 5;
+        this.line_width = 1;
+        if (typeof this.additional_options["list_content_element_id"] === "undefined") {
+            throw new Error("No content div provided for data list");
+        }
+        this.content_html_element = document.getElementById(this.additional_options["list_content_element_id"]);
+        if (typeof this.content_html_element === "undefined") {
+            throw new Error("Invalid content div provided for data list");
+        }
+        this.content_html_element.style.display = "none";
+        this.content_html_element.style.position = "absolute";
+        this.content_html_element.style.background = "#fff";
+        this.content_html_element.style.overflow = "scroll";
+        this.content_html_element.style.padding = this.content_padding+"px";
+        super.initializeObject();
+        this.toggleExpandedContent();
+    }
+    
+    /**
+     * Updates the bounding coordinates for the object. Useful when the canvas is transformed to ensure that the
+     * object is displayed correctly
+     */
+    updateBoundingCoords() {
+        this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height + this.expanded_height,y3:this.y+this.height};
+        if (!this.validateExpansionAllowed()) {
+            this.is_expanded_bool = false;
+            this.toggleExpandedContent();
+            this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height + this.expanded_height,y3:this.y+this.height};
+        }
+        
+        const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.getContext());
+        const screen_width = screen_coords.x2 - screen_coords.x1 - (2*this.content_padding) - (2*this.line_width);
+        const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
+        
+        this.content_html_element.style.width = screen_width+"px";
+        this.content_html_element.style.height = (screen_height - this.line_width)+"px";
+        this.content_html_element.style.left = (screen_coords.x1 + this.line_width + 1)+"px";
+        this.content_html_element.style.top = (screen_coords.y1 + this.line_width + 1)+"px";
+    }
+    
+    /**
+     * Returns the actual screen coordinates for this object
+     * @param context_obj The context object of our canvas
+     * @return {{y1: number, x1: number, y2: number, x2: number}}
+     */
+    getScreenCoordinates(context_obj = null) {
+        const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
+        const transform = context_obj.getTransform();
+        return {
+            x1:transform.a*(this.bounding_rectangle_coords.x1 + rect.left + transform.e),
+            y1:transform.d*(this.bounding_rectangle_coords.y3 + rect.top + transform.f),
+            x2:transform.a*(this.bounding_rectangle_coords.x2 + rect.left + transform.e),
+            y2:transform.d*(this.bounding_rectangle_coords.y2 + rect.top + transform.f),
+        };
+    }
+    
+    /**
+     * Draws the object while taking the current state of expansion into account
+     * @param context_obj The context object of our canvas
+     */
+    drawObject(context_obj = null) {
+        if (this.is_expanded_bool === true) {
+            this.updateBoundingCoords();
+        }
+        super.drawObject(context_obj);
+        this.drawExpandToggleIcon(context_obj);
+    }
+    
+    /**
+     * Draws the rectangle on the canvas
+     * @param context_obj The context object of our canvas
+     */
+    drawObjectComponents(context_obj = null) {
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        
+        const border_radius_delta = this.width > this.height ? this.height : this.width;
+        const relative_radius = {
+            top_left:border_radius_delta * (this.corner_radius.top_left / 100),
+            top_right:border_radius_delta * (this.corner_radius.top_right / 100),
+            bottom_right:border_radius_delta * (this.corner_radius.bottom_right / 100),
+            bottom_left:border_radius_delta * (this.corner_radius.bottom_left / 100)
+        }
+        context_obj.save();
+        context_obj.lineWidth = this.line_width;
+        this.drawShadow(context_obj);
+        if (this.is_expanded_bool === true) {
+            context_obj.beginPath();
+            context_obj.moveTo(this.x + relative_radius.top_left, this.y);
+            context_obj.lineTo(this.x + this.width - relative_radius.top_right, this.y);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + relative_radius.top_right);
+            context_obj.lineTo(this.x + this.width, this.y + this.height);
+            context_obj.lineTo(this.x, this.y + this.height);
+            context_obj.lineTo(this.x, this.y + relative_radius.top_left);
+            context_obj.quadraticCurveTo(this.x, this.y, this.x + relative_radius.top_left, this.y);
+            context_obj.fillStyle = this.fill_colour;
+            context_obj.fill();
+            context_obj.closePath();
+            
+            context_obj.beginPath();
+            context_obj.moveTo(this.x + this.width, this.y + this.height);
+            context_obj.lineTo(this.x + this.width, this.y + this.height + this.expanded_height - relative_radius.bottom_right);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height + this.expanded_height, this.x + this.width - relative_radius.bottom_right, this.y + this.height + this.expanded_height);
+            context_obj.lineTo(this.x + relative_radius.bottom_left, this.y + this.height + this.expanded_height);
+            context_obj.quadraticCurveTo(this.x, this.y + this.height + this.expanded_height, this.x, this.y + this.height + this.expanded_height - relative_radius.bottom_left);
+            context_obj.lineTo(this.x, this.y + this.height);
+            context_obj.strokeStyle = this.fill_colour;
+            context_obj.stroke();
+            context_obj.closePath();
+        } else {
+            context_obj.beginPath();
+            context_obj.moveTo(this.x + relative_radius.top_left, this.y);
+            context_obj.lineTo(this.x + this.width - relative_radius.top_right, this.y);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + relative_radius.top_right);
+            context_obj.lineTo(this.x + this.width, this.y + this.height - relative_radius.bottom_right);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - relative_radius.bottom_right, this.y + this.height);
+            context_obj.lineTo(this.x + relative_radius.bottom_left, this.y + this.height);
+            context_obj.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - relative_radius.bottom_left);
+            context_obj.lineTo(this.x, this.y + relative_radius.top_left);
+            context_obj.quadraticCurveTo(this.x, this.y, this.x + relative_radius.top_left, this.y);
+            context_obj.fillStyle = this.fill_colour;
+            context_obj.fill();
+            context_obj.closePath();
+        }
+        context_obj.restore();
+        
+        // Let's add the provided image (if any) to the center of the rectangle
+        if (typeof this.additional_options["image"] !== "undefined") {
+            const img_coords = {x:this.bounding_rectangle_coords.x1+this.width/4,y:this.bounding_rectangle_coords.y1+this.height/4}
+            const img = new Image();
+            img.src = this.additional_options["image"];
+            context_obj.save();
+            context_obj.drawImage(img,img_coords.x,img_coords.y,this.width/2,this.height/2);
+            context_obj.restore();
+        }
+        
+        // Let's add the provided text (if any) to the center of the rectangle
+        if (typeof this.additional_options["text"] !== "undefined") {
+            context_obj.save();
+            const max_font_size = this.height / 4;
+            let font_size = max_font_size;
+            context_obj.font = "small-caps bold "+font_size+"px arial";
+            let text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
+            while (text_width > (this.width * 0.8)) {
+                font_size = font_size - 0.5;
+                context_obj.font = "small-caps bold "+font_size+"px arial";
+                text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
+            }
+            const text_coords = {x:this.x + (this.width / 2),y: this.y + (this.height / 2) + (font_size / 4)};
+            context_obj.fillStyle = '#000';
+            if (typeof this.additional_options["text_colour"] !== "undefined") {
+                context_obj.fillStyle = this.additional_options["text_colour"];
+            }
+            context_obj.textAlign = 'center';
+            context_obj.fillText(this.additional_options["text"],text_coords.x,text_coords.y);
+            context_obj.restore();
+        }
+        
+    }
+    
+    /**
+     * Draws the icon that indicates whether the component is expanded or collapsed
+     * @param context_obj
+     */
+    drawExpandToggleIcon(context_obj = null) {
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        const icon_height = this.height < this.width ? this.height / 4 : this.width / 4;
+        const icon_width = icon_height;
+        const img_coords = {x:this.bounding_rectangle_coords.x2 - (icon_width*2),y:this.bounding_rectangle_coords.y1+this.height/2 - (icon_height/2)}
+        const img = new Image();
+        if (this.is_expanded_bool === true) {
+            img.src = this.dx_canvas_obj.getDxCanvasRoot()+"assets/images/chevron-arrow-up.png";
+        } else {
+            img.src = this.dx_canvas_obj.getDxCanvasRoot()+"assets/images/chevron-arrow-down.png";
+        }
+        context_obj.save();
+        context_obj.drawImage(img,img_coords.x,img_coords.y,icon_width,icon_height);
+        context_obj.restore();
+    }
+    
+    /**
+     * Determines whether to expand or collapse the object
+     */
+    onClick() {
+        super.onClick();
+        if (this.validateExpansionAllowed() === true) {
+            this.is_expanded_bool = !this.is_expanded_bool;
+        }
+        this.toggleExpandedContent();
+        this.updateBoundingCoords();
+    }
+    
+    /**
+     * Shows or hides the relevant expanded content
+     */
+    toggleExpandedContent() {
+        if ((typeof this.additional_options["dimensions"] !== "undefined") &&
+            (this.additional_options["dimensions"]["width"] !== "undefined")) {
+            this.width = this.additional_options["dimensions"]["width"];
+        }
+        this.expanded_height = 0;
+        if (this.is_expanded_bool === true) {
+            if ((typeof this.additional_options["dimensions"]["expanded_dimensions"] !== "undefined") &&
+                (typeof this.additional_options["dimensions"]["expanded_dimensions"]["width"] !== "undefined") &&
+                (typeof this.additional_options["dimensions"]["expanded_dimensions"]["height"] !== "undefined")) {
+                this.width = this.additional_options["dimensions"]["expanded_dimensions"]["width"];
+                this.expanded_height = this.additional_options["dimensions"]["expanded_dimensions"]["height"];
+            }
+        }
+        this.content_html_element.style.display = this.is_expanded_bool === true ? "block" : "none";
+    }
+    
+    /**
+     * Validates whether the object is allowed to be expanded, based on its position on the canvas
+     * @return {boolean}
+     */
+    validateExpansionAllowed() {
+        const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
+        if ((this.bounding_rectangle_coords.x1 < rect.left) ||
+            (this.bounding_rectangle_coords.x2 > rect.right) ||
+            (this.bounding_rectangle_coords.y1 < rect.top) ||
+            (this.bounding_rectangle_coords.y2 > rect.bottom)) {
+            return false;
+        }
+        return true
     }
 }
 //#endregion

@@ -1,6 +1,6 @@
 [
   {
-    "type": "DivbloxBaseRectangleCanvasObject",
+    "type": "DivbloxBaseDataListCanvasObject",
     "x": 200,
     "y": 200,
     "additional_options": {
@@ -8,14 +8,45 @@
       "is_draggable":true,
       "fill_colour": "#00EEA6",
       "dimensions": {
-        "width":400,
-        "height":150
+        "width":300,
+        "height":50,
+        "expanded_dimensions": {
+          "width":350,
+          "height":200
+        }
       },
       "text": "This is a nice title",
       "text_colour": "#000000",
       "image": "http://via.placeholder.com/150",
-      "notification_count": 6,
-      "notification_bubble_colour": "#FF0000"
+      "notification_count": 1,
+      "notification_bubble_colour": "#FF0000",
+      "list_content_element_id": "data-div1",
+      "connections": ["2"]
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseDataListCanvasObject",
+    "x": 400,
+    "y": 400,
+    "additional_options": {
+      "uid": "2",
+      "is_draggable":true,
+      "fill_colour": "#01EEA6",
+      "dimensions": {
+        "width":200,
+        "height":50,
+        "expanded_dimensions": {
+          "width":200,
+          "height":200
+        }
+      },
+      "text": "This is a nice title 2",
+      "text_colour": "#000000",
+      "image": "http://via.placeholder.com/150",
+      "notification_count": 2,
+      "notification_bubble_colour": "#FF0000",
+      "list_content_element_id": "data-div2"
     },
     "data": {}
   }

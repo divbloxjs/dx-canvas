@@ -22,15 +22,39 @@
 <div id="dxCanvasWrapper">
     <canvas id="dxCanvas">Please upgrade your browser to view this content</canvas>
 </div>
+<div id="data-div1">
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+    <p>Test data-div1 content here</p>
+</div>
+<div id="data-div2">
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+    <p>Test data-div2 content here</p>
+</div>
 <script src="../dx-canvas.js"></script>
 <script src="custom-implementation.js"></script>
 <script>
     const script_start_index_int = window.location.href.indexOf("test.html");
     const root_str = window.location.href.substr(0,script_start_index_int);
     async function initCanvas() {
-        const response = await fetch(root_str+'test-1.json');
+        const response = await fetch(root_str+'test.json');
         const data_json = await response.json();
-        const dx_canvas = new MyCustomCanvas('dxCanvas',data_json)
+        const dx_canvas = new MyCustomCanvas('dxCanvas',data_json,"../");
     }
     initCanvas();
 </script>
