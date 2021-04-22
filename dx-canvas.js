@@ -1,5 +1,4 @@
 //TODO:
-// Make the DivbloxBaseRectangleCanvasObject's corners rounded if required
 // Add various object types:
 // - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
@@ -442,6 +441,9 @@ class DivbloxBaseCanvasObject {
         }
         this.object_data = object_data;
         this.show_bounding_box = false; //Debug purposes
+        this.notification_bubble_radius = 0;
+        this.notification_bubble_colour = '#FF0000';
+        this.notification_bubble_coords = {x:this.x, y:this.y};
         this.initializeObject();
     }
     
@@ -466,6 +468,21 @@ class DivbloxBaseCanvasObject {
         if (typeof this.additional_options["is_draggable"] !== "undefined") {
             this.is_draggable = this.additional_options["is_draggable"];
         }
+        this.updateNotificationBubbleProperties();
+    }
+    
+    /**
+     * Updates the properties of the notification bubble that could be displayed at the top right of the object
+     */
+    updateNotificationBubbleProperties() {
+        if (typeof this.additional_options["notification_bubble_colour"] !== "undefined") {
+            this.notification_bubble_colour = this.additional_options["notification_bubble_colour"];
+        }
+        this.notification_bubble_radius = Math.round(this.height * 0.25);
+        this.notification_bubble_coords = {
+            x:this.x + this.width,
+            y:this.y
+        };
     }
     
     /**
@@ -508,7 +525,9 @@ class DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
+        this.updateNotificationBubbleProperties();
         this.drawObjectComponents(context_obj);
+        this.drawNotificationBubble(context_obj);
         this.drawObjectConnections(context_obj);
         if (this.show_bounding_box) {
             this.drawBoundingBox(context_obj); //Debug purposes
@@ -583,6 +602,60 @@ class DivbloxBaseCanvasObject {
             let arrow_angle = Math.atan((connector_coords.y2 - connector_coords.y1) / (connector_coords.x2 - connector_coords.x1));
             arrow_angle += ((connector_coords.x2 > connector_coords.x1) ? 90 : -90) * Math.PI/180;
             dx_helpers.drawArrowhead(context_obj, connector_coords.x2, connector_coords.y2, arrow_angle, arrow_head_length);
+        }
+    }
+    
+    /**
+     * Draws the notification bubble at the top right of the object if it is required
+     * @param context_obj The context object of our canvas
+     */
+    drawNotificationBubble(context_obj = null) {
+        if (context_obj === null) {
+            throw new Error("No context provided for object");
+        }
+        // If we have notifications count higher than 0, let's draw the notification bubble
+        if ((typeof this.additional_options["notification_count"] !== "undefined") && (this.additional_options["notification_count"] > 0)) {
+            // Let's draw the notification counter and its containing bubble
+            context_obj.save();
+            
+            const counter_text = this.additional_options["notification_count"];
+            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
+            
+            const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
+                Math.floor(context_obj.measureText(counter_text).width - (this.notification_bubble_radius / 2)) : 0;
+            
+            const bubble_arc_coords = {
+                x1:this.notification_bubble_coords.x,
+                y1:this.notification_bubble_coords.y,
+                x2:this.notification_bubble_coords.x + counter_text_width,
+                y2:this.notification_bubble_coords.y};
+            
+            context_obj.fillStyle = this.notification_bubble_colour;
+            
+            context_obj.beginPath();
+            context_obj.moveTo(bubble_arc_coords.x1, bubble_arc_coords.y1);
+            context_obj.arc(bubble_arc_coords.x1, bubble_arc_coords.y1, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),true);
+            context_obj.fill();
+            context_obj.closePath();
+            context_obj.beginPath();
+            context_obj.moveTo(bubble_arc_coords.x2, bubble_arc_coords.y2);
+            context_obj.arc(bubble_arc_coords.x2, bubble_arc_coords.y2, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),false);
+            context_obj.fill();
+            context_obj.closePath();
+            
+            context_obj.beginPath();
+            context_obj.rect(bubble_arc_coords.x1 - 0.5, bubble_arc_coords.y1 - this.notification_bubble_radius, counter_text_width + 0.75, this.notification_bubble_radius * 2);
+            context_obj.fill();
+            
+            let text_coords = {
+                x:(bubble_arc_coords.x1 + bubble_arc_coords.x2) / 2,
+                y:Math.ceil(this.notification_bubble_coords.y + (this.notification_bubble_radius / 4))}
+            
+            context_obj.fillStyle = '#fff';
+            context_obj.textAlign = 'center';
+            context_obj.fillText(counter_text, text_coords.x, text_coords.y);
+            
+            context_obj.restore();
         }
     }
     
@@ -764,25 +837,27 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant variables for this object
      */
     initializeObject() {
-        this.notification_bubble_radius = 0;
-        this.notification_bubble_colour = '#FF0000';
-        super.initializeObject();
         this.radius = 10;
-        this.notification_bubble_coords = {x:this.x,y:this.y};
         if (typeof this.additional_options["dimensions"] !== "undefined") {
             if (typeof this.additional_options["dimensions"]["radius"] !== "undefined") {
                 this.radius = this.additional_options["dimensions"]["radius"];
-                this.notification_bubble_radius = Math.round(this.radius * 0.25);
-                this.notification_bubble_coords = {
-                    x:this.x + (this.radius * Math.cos(315 * (Math.PI/180))),
-                    y:this.y + (this.radius * Math.sin(315 * (Math.PI/180)))
-                };
             }
         }
+        super.initializeObject();
+    }
+    
+    /**
+     * Updates the properties of the notification bubble that could be displayed at the top right of the object
+     */
+    updateNotificationBubbleProperties() {
         if (typeof this.additional_options["notification_bubble_colour"] !== "undefined") {
             this.notification_bubble_colour = this.additional_options["notification_bubble_colour"];
         }
-        this.updateBoundingCoords();
+        this.notification_bubble_radius = Math.round(this.radius * 0.25);
+        this.notification_bubble_coords = {
+            x:this.x + (this.radius * Math.cos(315 * (Math.PI/180))),
+            y:this.y + (this.radius * Math.sin(315 * (Math.PI/180)))
+        };
     }
     
     /**
@@ -804,11 +879,6 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
-        // Update the notification bubble's coordinates from the main object's
-        this.notification_bubble_coords = {
-            x:this.x + (this.radius * Math.cos(315 * (Math.PI/180))),
-            y:this.y + (this.radius * Math.sin(315 * (Math.PI/180)))
-        };
         // Start drawing the main object
         context_obj.save();
         
@@ -820,51 +890,6 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
         context_obj.fillStyle = this.fill_colour;
         context_obj.fill();
         context_obj.restore();
-        
-        // If we have notifications count higher than 0, let's draw the notification bubble
-        if ((typeof this.additional_options["notification_count"] !== "undefined") && (this.additional_options["notification_count"] > 0)) {
-            // Let's draw the notification counter and its containing bubble
-            context_obj.save();
-            
-            const counter_text = this.additional_options["notification_count"];
-            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
-            
-            const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
-                Math.floor(context_obj.measureText(counter_text).width - (this.notification_bubble_radius / 2)) : 0;
-            
-            const bubble_arc_coords = {
-                x1:this.notification_bubble_coords.x,
-                y1:this.notification_bubble_coords.y,
-                x2:this.notification_bubble_coords.x + counter_text_width,
-                y2:this.notification_bubble_coords.y};
-            
-            context_obj.fillStyle = this.notification_bubble_colour;
-            
-            context_obj.beginPath();
-            context_obj.moveTo(bubble_arc_coords.x1, bubble_arc_coords.y1);
-            context_obj.arc(bubble_arc_coords.x1, bubble_arc_coords.y1, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),true);
-            context_obj.fill();
-            context_obj.closePath();
-            context_obj.beginPath();
-            context_obj.moveTo(bubble_arc_coords.x2, bubble_arc_coords.y2);
-            context_obj.arc(bubble_arc_coords.x2, bubble_arc_coords.y2, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),false);
-            context_obj.fill();
-            context_obj.closePath();
-    
-            context_obj.beginPath();
-            context_obj.rect(bubble_arc_coords.x1 - 0.5, bubble_arc_coords.y1 - this.notification_bubble_radius, counter_text_width + 0.75, this.notification_bubble_radius * 2);
-            context_obj.fill();
-            
-            let text_coords = {
-                x:(bubble_arc_coords.x1 + bubble_arc_coords.x2) / 2,
-                y:Math.ceil(this.notification_bubble_coords.y + (this.notification_bubble_radius / 4))}
-            
-            context_obj.fillStyle = '#fff';
-            context_obj.textAlign = 'center';
-            context_obj.fillText(counter_text, text_coords.x, text_coords.y);
-            
-            context_obj.restore();
-        }
         
         // Let's add the provided image (if any) to the center of the circle
         if (typeof this.additional_options["image"] !== "undefined") {
@@ -928,24 +953,6 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
     }
     
     /**
-     * Initializes the relevant variables for this object
-     */
-    initializeObject() {
-        this.notification_bubble_radius = 0;
-        this.notification_bubble_colour = '#FF0000';
-        super.initializeObject();
-        this.notification_bubble_radius = Math.round(this.height * 0.25);
-        this.notification_bubble_coords = {
-            x:this.x + this.width,
-            y:this.y
-        };
-        if (typeof this.additional_options["notification_bubble_colour"] !== "undefined") {
-            this.notification_bubble_colour = this.additional_options["notification_bubble_colour"];
-        }
-        this.updateBoundingCoords();
-    }
-    
-    /**
      * Draws the rectangle on the canvas
      * @param context_obj The context object of our canvas
      */
@@ -953,11 +960,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
-        // Update the notification bubble's coordinates from the main object's
-        this.notification_bubble_coords = {
-            x:this.x + this.width,
-            y:this.y
-        };
+        
         // Start drawing the main object
         context_obj.save();
         
@@ -977,51 +980,6 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         context_obj.fill();
         context_obj.closePath();
         context_obj.restore();
-        
-        // If we have notifications count higher than 0, let's draw the notification bubble
-        if ((typeof this.additional_options["notification_count"] !== "undefined") && (this.additional_options["notification_count"] > 0)) {
-            // Let's draw the notification counter and its containing bubble
-            context_obj.save();
-            
-            const counter_text = this.additional_options["notification_count"];
-            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
-            
-            const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
-                Math.floor(context_obj.measureText(counter_text).width - (this.notification_bubble_radius / 2)) : 0;
-            
-            const bubble_arc_coords = {
-                x1:this.notification_bubble_coords.x,
-                y1:this.notification_bubble_coords.y,
-                x2:this.notification_bubble_coords.x + counter_text_width,
-                y2:this.notification_bubble_coords.y};
-            
-            context_obj.fillStyle = this.notification_bubble_colour;
-            
-            context_obj.beginPath();
-            context_obj.moveTo(bubble_arc_coords.x1, bubble_arc_coords.y1);
-            context_obj.arc(bubble_arc_coords.x1, bubble_arc_coords.y1, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),true);
-            context_obj.fill();
-            context_obj.closePath();
-            context_obj.beginPath();
-            context_obj.moveTo(bubble_arc_coords.x2, bubble_arc_coords.y2);
-            context_obj.arc(bubble_arc_coords.x2, bubble_arc_coords.y2, this.notification_bubble_radius,270 * (Math.PI/180),90 * (Math.PI/180),false);
-            context_obj.fill();
-            context_obj.closePath();
-            
-            context_obj.beginPath();
-            context_obj.rect(bubble_arc_coords.x1 - 0.5, bubble_arc_coords.y1 - this.notification_bubble_radius, counter_text_width + 0.75, this.notification_bubble_radius * 2);
-            context_obj.fill();
-            
-            let text_coords = {
-                x:(bubble_arc_coords.x1 + bubble_arc_coords.x2) / 2,
-                y:Math.ceil(this.notification_bubble_coords.y + (this.notification_bubble_radius / 4))}
-            
-            context_obj.fillStyle = '#fff';
-            context_obj.textAlign = 'center';
-            context_obj.fillText(counter_text, text_coords.x, text_coords.y);
-            
-            context_obj.restore();
-        }
         
         // Let's add the provided image (if any) to the center of the rectangle
         if (typeof this.additional_options["image"] !== "undefined") {

@@ -41,11 +41,28 @@
     "data": {}
   },
   {
+    "type": "DivbloxBaseCircleCanvasObject",
+    "x": 200,
+    "y": 200,
+    "additional_options": {
+      "uid": "3",
+      "is_draggable":true,
+      "fill_colour": "#00EEA6",
+      "dimensions": {
+        "radius": 150
+      },
+      "image": "http://via.placeholder.com/150",
+      "notification_count": 99999999999999,
+      "notification_bubble_colour": "#FF0000"
+    },
+    "data": {}
+  },
+  {
     "type": "DivbloxBaseRectangleCanvasObject",
     "x": 200,
     "y": 400,
     "additional_options": {
-      "uid": "3",
+      "uid": "4",
       "is_draggable":true,
       "fill_colour": "#00EEA6",
       "dimensions": {
