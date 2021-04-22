@@ -66,21 +66,27 @@
     "data": {}
   },
   {
-    "type": "DivbloxDataListCanvasObject",
-    "x": 600,
-    "y": 340,
+    "type": "DivbloxBaseDataListCanvasObject",
+    "x": 400,
+    "y": 400,
     "additional_options": {
-      "uid": "5",
+      "uid": "2",
       "is_draggable":true,
-      "fill_colour": "#00EEA6",
+      "fill_colour": "#01EEA6",
       "dimensions": {
-        "width":300,
-        "height":100,
+        "width":200,
+        "height":50,
         "expanded_dimensions": {
-          "width":500,
-          "height":800
+          "width":200,
+          "height":200
         }
-      }
+      },
+      "text": "This is a nice title 2",
+      "text_colour": "#000000",
+      "notification_count": 2,
+      "notification_bubble_colour": "#FF0000",
+      "list_content_element_id": "data-div2",
+      "connections": ["7"]
     },
     "data": {}
   },
