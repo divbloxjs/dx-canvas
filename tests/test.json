@@ -10,8 +10,8 @@
       "dimensions": {
         "radius": 50
       },
-      "image": "http://via.placeholder.com/150",
-      "notification_count": 99999999999999,
+      "image": "assets/images/tag.png",
+      "notification_count": 42,
       "notification_bubble_colour": "#FF0000",
       "connections": ["2"]
     },
@@ -20,7 +20,7 @@
   {
     "type": "DivbloxBaseRectangleCanvasObject",
     "x": 300,
-    "y": 300,
+    "y": 225,
     "additional_options": {
       "uid": "2",
       "is_draggable":true,

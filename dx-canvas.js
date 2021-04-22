@@ -880,7 +880,11 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             const height = this.bounding_rectangle_coords.y2 - this.bounding_rectangle_coords.y1;
             const img_coords = {x:this.bounding_rectangle_coords.x1+width/4,y:this.bounding_rectangle_coords.y1+height/4}
             const img = new Image();
-            img.src = this.additional_options["image"];
+            if (this.additional_options["image"].indexOf("http") !== -1) {
+                img.src = this.additional_options["image"];
+            } else {
+                img.src = this.dx_canvas_obj.getDxCanvasRoot()+this.additional_options["image"];
+            }
             context_obj.save();
             context_obj.drawImage(img,img_coords.x,img_coords.y,width/2,height/2);
             context_obj.restore();
