@@ -1,11 +1,17 @@
 //TODO:
 // Add various object types:
-// - Data List Object. Which is basically a rectangle with the option to expand to show its list contents
+// - HTML Content Object. Which is basically a rectangle with the option to expand to show its list contents
 //      When it expands we need to adjust all objects to its left and bottom with the delta
-//      This could be the base object for data model entities
+//      Its content needs to be scaled up or down as the canvas is zoomed
+//      Fix html content overflow when going over the edges of the canvas
+// - A Data model entity object
+// - BPMN nodes (Activity, decision, etc)
+// The ability to animate an object. Have a base animation class that deals with the animation basics and then child
+// classes for each animation type. Thinking initially of a jiggle type animation for when
+// DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
 // The ability to save the current model to a json file for later usage
 // Find a way to build the input json from a logical flow of data
-// Fix the canvas zoom bug when using data list content
+
 /**
  * If set to true, more logging will happen and certain elements will be drawn on the screen to aid debugging
  * @type {boolean}
@@ -92,7 +98,7 @@ class DivbloxCanvas {
                 break;
             case 'DivbloxBaseRectangleCanvasObject': return_obj = new DivbloxBaseRectangleCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
-            case 'DivbloxBaseDataListCanvasObject':return_obj = new DivbloxBaseDataListCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
+            case 'DivbloxBaseHtmlCanvasObject':return_obj = new DivbloxBaseHtmlCanvasObject(this,{x:json_obj.x,y:json_obj.y},json_obj["additional_options"],json_obj["data"],canvas_id);
                 break;
             default:
                 if (must_handle_error_bool === true) {console.error("Invalid object type '"+json_obj["type"]+"' provided");}
@@ -1045,10 +1051,10 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
 }
 
 /**
- * The DivbloxDataListCanvasObject attempts to display an interactive HTML list, contained inside a <div> element as
+ * The DivbloxBaseHtmlCanvasObject attempts to display an interactive HTML section, contained inside a <div> element as
  * an overlay on the canvas
  */
-class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
+class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
     /**
      * Initializes the relevant data for the object
      * @param {*} dx_canvas_obj The instance of the DivbloxCanvas object that controls the canvas
@@ -1074,6 +1080,10 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
      * the notification bubble
      * @param {string} additional_options.list_content_element_id The element id of the html div containing our list
      * data that should be displayed when expanded
+     * @param {boolean} additional_options.start_expanded Optional. If set to true, the object will render as
+     * expanded from the start
+     * @param {boolean} additional_options.prevent_collapse Optional. If set to true, the object will not have a
+     * collapse toggle and cannot be collapsed
      * @param object_data Optional. An object containing data relevant to the object. This data is not necessarily used
      * on the canvas, but is available to the developer when needed
      * @param {number} canvas_id Optional. The id that will be used to detect this object on the canvas
@@ -1100,6 +1110,7 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
     }
     initializeObject() {
         this.is_expanded_bool = false;
+        this.prevent_collapse = false;
         this.expanded_height = 0;
         this.content_padding = 5;
         this.line_width = 1;
@@ -1115,6 +1126,13 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
         this.content_html_element.style.background = "#fff";
         this.content_html_element.style.overflow = "scroll";
         this.content_html_element.style.padding = this.content_padding+"px";
+    
+        if (typeof this.additional_options["start_expanded"] !== "undefined") {
+            this.is_expanded_bool = this.additional_options["start_expanded"];
+        }
+        if (typeof this.additional_options["prevent_collapse"] !== "undefined") {
+            this.prevent_collapse = this.additional_options["prevent_collapse"];
+        }
         super.initializeObject();
         this.toggleExpandedContent();
     }
@@ -1274,6 +1292,7 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
      * @param context_obj
      */
     drawExpandToggleIcon(context_obj = null) {
+        if (this.prevent_collapse === true) {return;}
         if (context_obj === null) {
             throw new Error("No context provided for object");
         }
@@ -1296,6 +1315,7 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
      */
     onClick() {
         super.onClick();
+        if (this.prevent_collapse === true) {return;}
         if (this.validateExpansionAllowed() === true) {
             this.is_expanded_bool = !this.is_expanded_bool;
         }
@@ -1328,6 +1348,7 @@ class DivbloxBaseDataListCanvasObject extends DivbloxBaseCanvasObject {
      * @return {boolean}
      */
     validateExpansionAllowed() {
+        if (this.prevent_collapse === true) {return true;}
         const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
         const transform = this.dx_canvas_obj.context_obj.getTransform();
         const rect_transformed =  {

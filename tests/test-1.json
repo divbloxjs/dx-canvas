@@ -66,7 +66,7 @@
     "data": {}
   },
   {
-    "type": "DivbloxBaseDataListCanvasObject",
+    "type": "DivbloxBaseHtmlCanvasObject",
     "x": 400,
     "y": 400,
     "additional_options": {

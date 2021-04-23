@@ -39,7 +39,7 @@
     "data": {}
   },
   {
-    "type": "DivbloxBaseDataListCanvasObject",
+    "type": "DivbloxBaseHtmlCanvasObject",
     "x": 900,
     "y": 300,
     "additional_options": {
@@ -58,7 +58,9 @@
       "text_colour": "#000000",
       "notification_count": 1,
       "notification_bubble_colour": "#FF0000",
-      "list_content_element_id": "data-div1"
+      "list_content_element_id": "data-div1",
+      "start_expanded": true,
+      "prevent_collapse": false
     },
     "data": {}
   }
