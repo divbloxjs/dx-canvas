@@ -1152,11 +1152,25 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.getContext());
         const screen_width = screen_coords.x2 - screen_coords.x1 - (2*this.content_padding) - (2*this.line_width);
         const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
+    
+        const transform = this.dx_canvas_obj.context_obj.getTransform();
         
         this.content_html_element.style.width = screen_width+"px";
         this.content_html_element.style.height = (screen_height - this.line_width)+"px";
         this.content_html_element.style.left = (screen_coords.x1 + this.line_width + 1)+"px";
         this.content_html_element.style.top = (screen_coords.y1 + this.line_width + 1)+"px";
+        //TODO: This code was an attempt to get the content scaling right. Needs fixing
+        /*const scalable_elem = this.content_html_element.firstElementChild;
+        scalable_elem.position = "absolute";
+        scalable_elem.style.left = ((screen_coords.x1/transform.a + this.line_width + 1))+"px";
+        scalable_elem.style.top = ((screen_coords.y1/transform.d + this.line_width + 1))+"px";
+        scalable_elem.style.width = (screen_width/transform.a)+"px";
+        scalable_elem.style.height = (screen_height*transform.d)+"px";
+        //if ((transform.a < 1) || (transform.d < 1)) {
+            
+            scalable_elem.style.transform = "matrix("+transform.a+","+transform.b+","+transform.c+","+transform.d+","+transform.e+","+transform.f+")";
+        //}
+        */
     }
     
     /**
