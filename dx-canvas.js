@@ -1154,23 +1154,19 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
     
         const transform = this.dx_canvas_obj.context_obj.getTransform();
+        //console.log("Tx: "+JSON.stringify(transform,null,2));
         
         this.content_html_element.style.width = screen_width+"px";
         this.content_html_element.style.height = (screen_height - this.line_width)+"px";
         this.content_html_element.style.left = (screen_coords.x1 + this.line_width + 1)+"px";
         this.content_html_element.style.top = (screen_coords.y1 + this.line_width + 1)+"px";
-        //TODO: This code was an attempt to get the content scaling right. Needs fixing
-        /*const scalable_elem = this.content_html_element.firstElementChild;
-        scalable_elem.position = "absolute";
-        scalable_elem.style.left = ((screen_coords.x1/transform.a + this.line_width + 1))+"px";
-        scalable_elem.style.top = ((screen_coords.y1/transform.d + this.line_width + 1))+"px";
-        scalable_elem.style.width = (screen_width/transform.a)+"px";
-        scalable_elem.style.height = (screen_height*transform.d)+"px";
-        //if ((transform.a < 1) || (transform.d < 1)) {
-            
-            scalable_elem.style.transform = "matrix("+transform.a+","+transform.b+","+transform.c+","+transform.d+","+transform.e+","+transform.f+")";
-        //}
-        */
+//        //TODO: This code was an attempt to get the content scaling right. Needs fixing
+//        const html_children = this.content_html_element.children;
+//        for (const html_child of html_children) {
+//            html_child.style.transform = "scale("+(transform.a)+","+(transform.d)+") " +
+//                "translate(-"+((screen_coords.x1 - (this.bounding_rectangle_coords.x1 * (2*transform.a))))+"px, " +
+//                "-"+((screen_coords.y1 - (this.bounding_rectangle_coords.y3 * transform.d)))+"px)";
+//        }
     }
     
     /**
@@ -1187,13 +1183,12 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
             right:(rect.right + transform.e) / transform.a,
             bottom:(rect.bottom + transform.f) / transform.d,
         };
-        const screen_coords =  {
+        return {
             x1:transform.a*(this.bounding_rectangle_coords.x1 + rect_transformed.left),
             y1:transform.d*(this.bounding_rectangle_coords.y3 + rect_transformed.top),
             x2:transform.a*(this.bounding_rectangle_coords.x2 + rect_transformed.left),
             y2:transform.d*(this.bounding_rectangle_coords.y2 + rect_transformed.top),
         };
-        return screen_coords;
     }
     
     /**
