@@ -216,7 +216,6 @@ class DivbloxCanvas {
         if (active_obj_index === -1) {
             this.object_ordered_array.push(object.getId().toString());
         }
-        console.log("Register object JSON"+JSON.stringify(object.getJson()));
     }
     
     /**
