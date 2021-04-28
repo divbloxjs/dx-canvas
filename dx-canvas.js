@@ -1123,6 +1123,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
     initializeObject() {
         this.is_expanded_bool = false;
         this.prevent_collapse = false;
+        this.expanded_width = 0;
         this.expanded_height = 0;
         this.content_padding = 5;
         this.line_width = 1;
@@ -1157,9 +1158,10 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.bounding_rectangle_coords = {
             x1:this.x,
             y1:this.y,
-            x2:this.x+this.width,
-            y2:this.y+this.height + this.expanded_height,
-            y3:this.y+this.height};
+            x2:this.x + this.width,
+            x3:this.x + this.width - this.expanded_width,
+            y2:this.y + this.height + this.expanded_height,
+            y3:this.y + this.height};
         if (!this.validateExpansionAllowed()) {
             this.is_expanded_bool = false;
             this.toggleExpandedContent();
@@ -1358,16 +1360,18 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
             this.width = this.additional_options["dimensions"]["width"];
         }
         this.expanded_height = 0;
+        this.expanded_width = 0;
         if (this.is_expanded_bool === true) {
             if ((typeof this.additional_options["dimensions"]["expanded_dimensions"] !== "undefined") &&
                 (typeof this.additional_options["dimensions"]["expanded_dimensions"]["width"] !== "undefined") &&
                 (typeof this.additional_options["dimensions"]["expanded_dimensions"]["height"] !== "undefined")) {
+                this.expanded_width = this.additional_options["dimensions"]["expanded_dimensions"]["width"] - this.width;
                 this.width = this.additional_options["dimensions"]["expanded_dimensions"]["width"];
                 this.expanded_height = this.additional_options["dimensions"]["expanded_dimensions"]["height"];
             }
-            this.updateAffectedCanvasObjects();
         }
         this.content_html_element.style.display = this.is_expanded_bool === true ? "block" : "none";
+        this.updateAffectedCanvasObjects();
     }
     
     /**
@@ -1394,10 +1398,21 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     updateAffectedCanvasObjects() {
+        const expanded_deltas = {x:this.expanded_width,y:this.expanded_height};
+        //TODO: Fix this
         for (const object_id of Object.keys(this.dx_canvas_obj.objects)) {
             const object = this.dx_canvas_obj.objects[object_id];
-            if (object.x > this.bounding_rectangle_coords.x1) {
-                object.reposition({x:object.x+200,y:object.y});
+            if (object.x > this.bounding_rectangle_coords.x3) {
+                object.updateDeltas({x:object.x,y:object.y});
+                if (this.is_expanded_bool === true) {
+                    object.reposition(
+                        {x: object.x + expanded_deltas.x,
+                            y: object.y + expanded_deltas.y});
+                } else {
+                    object.reposition(
+                        {x: object.x - expanded_deltas.x,
+                            y: object.y - expanded_deltas.y});
+                }
             }
         }
     }
