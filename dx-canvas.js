@@ -9,7 +9,6 @@
 // The ability to animate an object. Have a base animation class that deals with the animation basics and then child
 // classes for each animation type. Thinking initially of a jiggle type animation for when
 // DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
-// The ability to save the current model to a json file for later usage
 // Find a way to build the input json from a logical flow of data
 
 /**
@@ -217,6 +216,7 @@ class DivbloxCanvas {
         if (active_obj_index === -1) {
             this.object_ordered_array.push(object.getId().toString());
         }
+        console.log("Register object JSON"+JSON.stringify(object.getJson()));
     }
     
     /**
@@ -438,6 +438,19 @@ class DivbloxCanvas {
             this.zoom_current -= this.zoom_factor;
         }
         this.context_obj.scale(zoom_factor,zoom_factor);
+    }
+
+    /**
+     * Returns a JSON representation of the current canvas that can be used to reload it later
+     * @returns {*[]}
+     */
+    getCanvasJson() {
+        let export_json = [];
+        for (const object_id of Object.keys(this.objects)) {
+            const object = this.objects[object_id];
+            export_json.push(object.getJson());
+        }
+        return export_json;
     }
 }
 //#endregion
@@ -754,7 +767,7 @@ class DivbloxBaseCanvasObject {
      */
     getJson() {
         return {
-            "type": "DivbloxBaseCanvasObject",
+            "type": this.constructor.name,
             "x": this.x,
             "y": this.y,
             "additional_options": this.additional_options,
