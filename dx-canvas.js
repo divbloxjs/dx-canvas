@@ -1200,15 +1200,21 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.getContext());
         const screen_width = screen_coords.x2 - screen_coords.x1 - (2*this.content_padding) - (2*this.line_width);
         const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
-        
-        this.content_html_element.style.width = (screen_width - (this.line_width / 2))+"px";
+
+        const transform = this.dx_canvas_obj.context_obj.getTransform();
+
+        this.content_html_element.style.width = (screen_width - this.line_width - (transform.a * 6))+"px";
         this.content_html_element.style.height = (screen_height - this.line_width)+"px";
-        this.content_html_element.style.left = (screen_coords.x1 + this.line_width)+"px";
+        this.content_html_element.style.left = (screen_coords.x1 + this.line_width + (transform.a * 4))+"px";
         this.content_html_element.style.top = (screen_coords.y1 + this.line_width)+"px";
         this.content_html_element.style.borderBottomRightRadius = this.relative_radius.bottom_right+"px";
         this.content_html_element.style.borderBottomLeftRadius = this.relative_radius.bottom_left+"px";
+
+        if (transform.a < 0.25) {
+            this.content_html_element.style.display = "none";
+        }
        //TODO: This code was an attempt to get the content scaling right. Needs fixing
-       //  const transform = this.dx_canvas_obj.context_obj.getTransform();
+       //
        //  console.log("Tx: "+JSON.stringify(transform,null,2));
        //  const html_children = this.content_html_element.children;
        //  for (const html_child of html_children) {
