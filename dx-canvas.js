@@ -1,14 +1,13 @@
 //TODO:
 // Add various object types:
-// - HTML Content Object. Which is basically a rectangle with the option to expand to show its list contents
-//      When it expands we need to adjust all objects to its left and bottom with the delta
-//      Its content needs to be scaled up or down as the canvas is zoomed
+// - HTML Content Object fixes:
 //      Fix html content overflow when going over the edges of the canvas
 // - A Data model entity object
 // - BPMN nodes (Activity, decision, etc)
-// The ability to animate an object. Have a base animation class that deals with the animation basics and then child
-// classes for each animation type. Thinking initially of a jiggle type animation for when
-// DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
+// The ability to animate an object.
+//  - Have a base animation class that deals with the animation basics and then child
+//    classes for each animation type. Thinking initially of a jiggle type animation for when
+//    DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
 // Find a way to build the input json from a logical flow of data
 
 /**
