@@ -1120,6 +1120,10 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.corner_radius = {top_left: 10, top_right: 10, bottom_right: 10, bottom_left: 10};
         // These values are percentages of the smallest side of the rectangle
     }
+
+    /**
+     * Initializes the relevant variables for this object
+     */
     initializeObject() {
         this.is_expanded_bool = false;
         this.prevent_collapse = false;
@@ -1139,6 +1143,9 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.content_html_element.style.background = "#fff";
         this.content_html_element.style.overflow = "scroll";
         this.content_html_element.style.padding = this.content_padding+"px";
+
+        this.expanded_width_reference = 0;
+        this.expanded_height_reference = 0;
     
         if (typeof this.additional_options["start_expanded"] !== "undefined") {
             this.is_expanded_bool = this.additional_options["start_expanded"];
@@ -1147,7 +1154,27 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
             this.prevent_collapse = this.additional_options["prevent_collapse"];
         }
         super.initializeObject();
+
+        if ((typeof this.additional_options["dimensions"]["expanded_dimensions"] !== "undefined") &&
+            (typeof this.additional_options["dimensions"]["expanded_dimensions"]["width"] !== "undefined") &&
+            (typeof this.additional_options["dimensions"]["expanded_dimensions"]["height"] !== "undefined")) {
+            this.expanded_width_reference = this.additional_options["dimensions"]["expanded_dimensions"]["width"] - this.width;
+            this.expanded_height_reference = this.additional_options["dimensions"]["expanded_dimensions"]["height"];
+        }
         this.toggleExpandedContent();
+    }
+
+    /**
+     * Helper function for this object that calculates the bounding coordinates
+     */
+    doBoundingCoordsCalculation() {
+        this.bounding_rectangle_coords = {
+            x1:this.x,
+            y1:this.y,
+            x2:this.x + this.width, // The current x2 point, including expansion
+            x3:this.x + this.width - this.expanded_width, // The original x2 point without expansion
+            y2:this.y + this.height + this.expanded_height, // The current y2 point, including expansion
+            y3:this.y + this.height};// The original y2 point without expansion
     }
     
     /**
@@ -1155,37 +1182,31 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      * object is displayed correctly
      */
     updateBoundingCoords() {
-        this.bounding_rectangle_coords = {
-            x1:this.x,
-            y1:this.y,
-            x2:this.x + this.width,
-            x3:this.x + this.width - this.expanded_width,
-            y2:this.y + this.height + this.expanded_height,
-            y3:this.y + this.height};
-        if (!this.validateExpansionAllowed()) {
+        this.doBoundingCoordsCalculation();
+        if (!this.validateExpansionAllowed() && (this.is_expanded_bool === true)) {
             this.is_expanded_bool = false;
             this.toggleExpandedContent();
-            this.bounding_rectangle_coords = {x1:this.x,y1:this.y,x2:this.x+this.width,y2:this.y+this.height + this.expanded_height,y3:this.y+this.height};
+            this.doBoundingCoordsCalculation();
+            return;
         }
         
         const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.getContext());
         const screen_width = screen_coords.x2 - screen_coords.x1 - (2*this.content_padding) - (2*this.line_width);
         const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
-    
-        const transform = this.dx_canvas_obj.context_obj.getTransform();
-        //console.log("Tx: "+JSON.stringify(transform,null,2));
         
         this.content_html_element.style.width = screen_width+"px";
         this.content_html_element.style.height = (screen_height - this.line_width)+"px";
         this.content_html_element.style.left = (screen_coords.x1 + this.line_width + 1)+"px";
         this.content_html_element.style.top = (screen_coords.y1 + this.line_width + 1)+"px";
-//        //TODO: This code was an attempt to get the content scaling right. Needs fixing
-//        const html_children = this.content_html_element.children;
-//        for (const html_child of html_children) {
-//            html_child.style.transform = "scale("+(transform.a)+","+(transform.d)+") " +
-//                "translate(-"+((screen_coords.x1 - (this.bounding_rectangle_coords.x1 * (2*transform.a))))+"px, " +
-//                "-"+((screen_coords.y1 - (this.bounding_rectangle_coords.y3 * transform.d)))+"px)";
-//        }
+       //TODO: This code was an attempt to get the content scaling right. Needs fixing
+       //  const transform = this.dx_canvas_obj.context_obj.getTransform();
+       //  console.log("Tx: "+JSON.stringify(transform,null,2));
+       //  const html_children = this.content_html_element.children;
+       //  for (const html_child of html_children) {
+       //      html_child.style.transform = "scale("+(transform.a)+","+(transform.d)+") " +
+       //          "translate(-"+((screen_coords.x1 - (this.bounding_rectangle_coords.x1 * (2*transform.a))))+"px, " +
+       //          "-"+((screen_coords.y1 - (this.bounding_rectangle_coords.y3 * transform.d)))+"px)";
+       //  }
     }
     
     /**
@@ -1350,26 +1371,29 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.toggleExpandedContent();
         this.updateBoundingCoords();
     }
-    
+
     /**
-     * Shows or hides the relevant expanded content
+     * Calculates the expanded values, based on what's provided in the object definition
      */
-    toggleExpandedContent() {
+    calculateExpandedDimensions() {
+        this.expanded_height = 0;
+        this.expanded_width = 0;
         if ((typeof this.additional_options["dimensions"] !== "undefined") &&
             (this.additional_options["dimensions"]["width"] !== "undefined")) {
             this.width = this.additional_options["dimensions"]["width"];
         }
-        this.expanded_height = 0;
-        this.expanded_width = 0;
         if (this.is_expanded_bool === true) {
-            if ((typeof this.additional_options["dimensions"]["expanded_dimensions"] !== "undefined") &&
-                (typeof this.additional_options["dimensions"]["expanded_dimensions"]["width"] !== "undefined") &&
-                (typeof this.additional_options["dimensions"]["expanded_dimensions"]["height"] !== "undefined")) {
-                this.expanded_width = this.additional_options["dimensions"]["expanded_dimensions"]["width"] - this.width;
-                this.width = this.additional_options["dimensions"]["expanded_dimensions"]["width"];
-                this.expanded_height = this.additional_options["dimensions"]["expanded_dimensions"]["height"];
-            }
+            this.expanded_width = this.expanded_width_reference;
+            this.width = this.additional_options["dimensions"]["expanded_dimensions"]["width"];
+            this.expanded_height = this.expanded_height_reference;
         }
+    }
+
+    /**
+     * Shows or hides the relevant expanded content
+     */
+    toggleExpandedContent() {
+        this.calculateExpandedDimensions();
         this.content_html_element.style.display = this.is_expanded_bool === true ? "block" : "none";
         this.updateAffectedCanvasObjects();
     }
@@ -1397,23 +1421,27 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         return true
     }
 
+    /**
+     * Repositions all canvas objects that will be affected when this object expands or collapses
+     */
     updateAffectedCanvasObjects() {
-        const expanded_deltas = {x:this.expanded_width,y:this.expanded_height};
-        //TODO: Fix this
+        const compare_coords = {x:this.bounding_rectangle_coords.x1,y:this.bounding_rectangle_coords.y3};
+
         for (const object_id of Object.keys(this.dx_canvas_obj.objects)) {
             const object = this.dx_canvas_obj.objects[object_id];
-            if (object.x > this.bounding_rectangle_coords.x3) {
-                object.updateDeltas({x:object.x,y:object.y});
-                if (this.is_expanded_bool === true) {
-                    object.reposition(
-                        {x: object.x + expanded_deltas.x,
-                            y: object.y + expanded_deltas.y});
-                } else {
-                    object.reposition(
-                        {x: object.x - expanded_deltas.x,
-                            y: object.y - expanded_deltas.y});
-                }
+            let reposition_coords = {x:object.x,y:object.y};
+            if (object.getBoundingRectangle().x2 > compare_coords.x) {
+                reposition_coords.x = this.is_expanded_bool === true ?
+                    object.x + this.expanded_width_reference :
+                    object.x - this.expanded_width_reference;
             }
+            if (object.getBoundingRectangle().y1 > compare_coords.y) {
+                reposition_coords.y = this.is_expanded_bool === true ?
+                    object.y + this.expanded_height_reference :
+                    object.y - this.expanded_height_reference;
+            }
+            object.updateDeltas({x:object.x,y:object.y});
+            object.reposition(reposition_coords);
         }
     }
 }
