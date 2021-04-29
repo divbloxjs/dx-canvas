@@ -1129,7 +1129,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.expanded_width = 0;
         this.expanded_height = 0;
         this.content_padding = 5;
-        this.line_width = 1;
+        this.line_width = 4;
         if (typeof this.additional_options["list_content_element_id"] === "undefined") {
             throw new Error("No content div provided for data list");
         }
@@ -1145,6 +1145,12 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
 
         this.expanded_width_reference = 0;
         this.expanded_height_reference = 0;
+        this.relative_radius = {
+            top_left:0,
+            top_right:0,
+            bottom_right:0,
+            bottom_left:0
+        }
     
         if (typeof this.additional_options["start_expanded"] !== "undefined") {
             this.is_expanded_bool = this.additional_options["start_expanded"];
@@ -1160,6 +1166,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
             this.expanded_width_reference = this.additional_options["dimensions"]["expanded_dimensions"]["width"] - this.width;
             this.expanded_height_reference = this.additional_options["dimensions"]["expanded_dimensions"]["height"];
         }
+
         this.toggleExpandedContent();
     }
 
@@ -1182,21 +1189,24 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      */
     updateBoundingCoords() {
         this.doBoundingCoordsCalculation();
-        if (!this.validateExpansionAllowed() && (this.is_expanded_bool === true)) {
-            this.is_expanded_bool = false;
-            this.toggleExpandedContent();
-            this.doBoundingCoordsCalculation();
-            return;
+        if (this.is_expanded_bool === true) {
+            if (this.validateExpansionAllowed()) {
+                this.content_html_element.style.display = "block";
+            } else {
+                this.content_html_element.style.display = "none";
+            }
         }
         
         const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.getContext());
         const screen_width = screen_coords.x2 - screen_coords.x1 - (2*this.content_padding) - (2*this.line_width);
         const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
         
-        this.content_html_element.style.width = screen_width+"px";
+        this.content_html_element.style.width = (screen_width - (this.line_width / 2))+"px";
         this.content_html_element.style.height = (screen_height - this.line_width)+"px";
-        this.content_html_element.style.left = (screen_coords.x1 + this.line_width + 1)+"px";
-        this.content_html_element.style.top = (screen_coords.y1 + this.line_width + 1)+"px";
+        this.content_html_element.style.left = (screen_coords.x1 + this.line_width)+"px";
+        this.content_html_element.style.top = (screen_coords.y1 + this.line_width)+"px";
+        this.content_html_element.style.borderBottomRightRadius = this.relative_radius.bottom_right+"px";
+        this.content_html_element.style.borderBottomLeftRadius = this.relative_radius.bottom_left+"px";
        //TODO: This code was an attempt to get the content scaling right. Needs fixing
        //  const transform = this.dx_canvas_obj.context_obj.getTransform();
        //  console.log("Tx: "+JSON.stringify(transform,null,2));
@@ -1252,7 +1262,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         }
         
         const border_radius_delta = this.width > this.height ? this.height : this.width;
-        const relative_radius = {
+        this.relative_radius = {
             top_left:border_radius_delta * (this.corner_radius.top_left / 100),
             top_right:border_radius_delta * (this.corner_radius.top_right / 100),
             bottom_right:border_radius_delta * (this.corner_radius.bottom_right / 100),
@@ -1263,38 +1273,80 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.drawShadow(context_obj);
         if (this.is_expanded_bool === true) {
             context_obj.beginPath();
-            context_obj.moveTo(this.x + relative_radius.top_left, this.y);
-            context_obj.lineTo(this.x + this.width - relative_radius.top_right, this.y);
-            context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + relative_radius.top_right);
+            context_obj.moveTo(this.x + this.relative_radius.top_left, this.y);
+            context_obj.lineTo(this.x + this.width - this.relative_radius.top_right, this.y);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + this.relative_radius.top_right);
             context_obj.lineTo(this.x + this.width, this.y + this.height);
             context_obj.lineTo(this.x, this.y + this.height);
-            context_obj.lineTo(this.x, this.y + relative_radius.top_left);
-            context_obj.quadraticCurveTo(this.x, this.y, this.x + relative_radius.top_left, this.y);
+            context_obj.lineTo(this.x, this.y + this.relative_radius.top_left);
+            context_obj.quadraticCurveTo(this.x, this.y, this.x + this.relative_radius.top_left, this.y);
             context_obj.fillStyle = this.fill_colour;
             context_obj.fill();
             context_obj.closePath();
-            
+
+            let coords_with_lined_width = {
+                x1: this.x + (this.line_width / 2),
+                y1: this.y + this.height,
+                x2: this.x + this.width - (this.line_width / 2),
+                y2: this.y + this.height + this.expanded_height};
+
+            // Draw the outline of the expanded area
             context_obj.beginPath();
-            context_obj.moveTo(this.x + this.width, this.y + this.height);
-            context_obj.lineTo(this.x + this.width, this.y + this.height + this.expanded_height - relative_radius.bottom_right);
-            context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height + this.expanded_height, this.x + this.width - relative_radius.bottom_right, this.y + this.height + this.expanded_height);
-            context_obj.lineTo(this.x + relative_radius.bottom_left, this.y + this.height + this.expanded_height);
-            context_obj.quadraticCurveTo(this.x, this.y + this.height + this.expanded_height, this.x, this.y + this.height + this.expanded_height - relative_radius.bottom_left);
-            context_obj.lineTo(this.x, this.y + this.height);
+            context_obj.moveTo(coords_with_lined_width.x2, coords_with_lined_width.y1);
+            context_obj.lineTo(coords_with_lined_width.x2, coords_with_lined_width.y2 - this.relative_radius.bottom_right);
+            context_obj.quadraticCurveTo(
+                coords_with_lined_width.x2,
+                coords_with_lined_width.y2,
+                coords_with_lined_width.x2 - this.relative_radius.bottom_right,
+                coords_with_lined_width.y2);
+            context_obj.lineTo(coords_with_lined_width.x1 + this.relative_radius.bottom_left,
+                coords_with_lined_width.y2);
+            context_obj.quadraticCurveTo(
+                coords_with_lined_width.x1,
+                coords_with_lined_width.y2,
+                coords_with_lined_width.x1,
+                coords_with_lined_width.y2 - this.relative_radius.bottom_left);
+            context_obj.lineTo(coords_with_lined_width.x1, coords_with_lined_width.y1);
             context_obj.strokeStyle = this.fill_colour;
             context_obj.stroke();
             context_obj.closePath();
+
+            // Fill the expanded area. We do this separately because we want to retain our line width
+            coords_with_lined_width = {
+                x1: this.x + this.line_width,
+                y1: this.y + this.height,
+                x2: this.x + this.width - this.line_width,
+                y2: this.y + this.height + this.expanded_height - (this.line_width / 2)};
+            context_obj.beginPath();
+            context_obj.moveTo(coords_with_lined_width.x2, coords_with_lined_width.y1);
+            context_obj.lineTo(coords_with_lined_width.x2, coords_with_lined_width.y2 - this.relative_radius.bottom_right);
+            context_obj.quadraticCurveTo(
+                coords_with_lined_width.x2,
+                coords_with_lined_width.y2,
+                coords_with_lined_width.x2 - this.relative_radius.bottom_right,
+                coords_with_lined_width.y2);
+            context_obj.lineTo(coords_with_lined_width.x1 + this.relative_radius.bottom_left,
+                coords_with_lined_width.y2);
+            context_obj.quadraticCurveTo(
+                coords_with_lined_width.x1,
+                coords_with_lined_width.y2,
+                coords_with_lined_width.x1,
+                coords_with_lined_width.y2 - this.relative_radius.bottom_left);
+            context_obj.lineTo(coords_with_lined_width.x1, coords_with_lined_width.y1);
+            context_obj.fillStyle = "#ffffff";
+            context_obj.fill()
+            context_obj.closePath();
         } else {
             context_obj.beginPath();
-            context_obj.moveTo(this.x + relative_radius.top_left, this.y);
-            context_obj.lineTo(this.x + this.width - relative_radius.top_right, this.y);
-            context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + relative_radius.top_right);
-            context_obj.lineTo(this.x + this.width, this.y + this.height - relative_radius.bottom_right);
-            context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - relative_radius.bottom_right, this.y + this.height);
-            context_obj.lineTo(this.x + relative_radius.bottom_left, this.y + this.height);
-            context_obj.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - relative_radius.bottom_left);
-            context_obj.lineTo(this.x, this.y + relative_radius.top_left);
-            context_obj.quadraticCurveTo(this.x, this.y, this.x + relative_radius.top_left, this.y);
+            context_obj.moveTo(this.x + this.relative_radius.top_left, this.y);
+            context_obj.lineTo(this.x + this.width - this.relative_radius.top_right, this.y);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + this.relative_radius.top_right);
+            context_obj.lineTo(this.x + this.width, this.y + this.height - this.relative_radius.bottom_right);
+            context_obj.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - this.relative_radius.bottom_right, this.y + this.height);
+            context_obj.lineTo(this.x + this.relative_radius.bottom_left, this.y + this.height);
+            context_obj.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - this.relative_radius.bottom_left);
+            context_obj.lineTo(this.x, this.y + this.relative_radius.top_left);
+            context_obj.quadraticCurveTo(this.x, this.y, this.x + this.relative_radius.top_left, this.y);
             context_obj.fillStyle = this.fill_colour;
             context_obj.fill();
             context_obj.closePath();
