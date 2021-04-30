@@ -55,7 +55,7 @@ class DivbloxCanvas {
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
         this.canvas_obj.width = this.canvas_obj.parentElement.clientWidth;
-        
+
         this.canvas_obj.addEventListener('mousemove', this.onMouseMove.bind(this), false);
         this.canvas_obj.addEventListener('mouseenter', this.onMouseEnter.bind(this), false);
         this.canvas_obj.addEventListener('mouseleave', this.onMouseLeave.bind(this), false);
@@ -451,6 +451,14 @@ class DivbloxCanvas {
             export_json.push(object.getJson());
         }
         return export_json;
+    }
+
+    /**
+     * Returns a data url that represents the canvas as a PNG
+     * @returns {string}
+     */
+    downloadCanvasPng() {
+        return this.canvas_obj.toDataURL('image/png');
     }
 }
 //#endregion
@@ -876,6 +884,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant variables for this object
      */
     initializeObject() {
+        this.image_obj = null;
         this.radius = 10;
         if (typeof this.additional_options["dimensions"] !== "undefined") {
             if (typeof this.additional_options["dimensions"]["radius"] !== "undefined") {
@@ -933,15 +942,19 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
             const width = this.bounding_rectangle_coords.x2 - this.bounding_rectangle_coords.x1;
             const height = this.bounding_rectangle_coords.y2 - this.bounding_rectangle_coords.y1;
             const img_coords = {x:this.bounding_rectangle_coords.x1+width/4,y:this.bounding_rectangle_coords.y1+height/4}
-            const img = new Image();
-            if (this.additional_options["image"].indexOf("http") !== -1) {
-                img.src = this.additional_options["image"];
+            if (this.image_obj === null) {
+                this.image_obj = new Image();
+                if (this.additional_options["image"].indexOf("http") !== -1) {
+                    this.image_obj.src = this.additional_options["image"];
+                } else {
+                    this.image_obj.src = this.dx_canvas_obj.getDxCanvasRoot()+this.additional_options["image"];
+                    this.image_obj.setAttribute('crossorigin', 'anonymous');
+                }
             } else {
-                img.src = this.dx_canvas_obj.getDxCanvasRoot()+this.additional_options["image"];
+                context_obj.save();
+                context_obj.drawImage(this.image_obj,img_coords.x,img_coords.y,width/2,height/2);
+                context_obj.restore();
             }
-            context_obj.save();
-            context_obj.drawImage(img,img_coords.x,img_coords.y,width/2,height/2);
-            context_obj.restore();
         }
     }
 }
@@ -994,7 +1007,15 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         this.corner_radius = {top_left: 10, top_right: 10, bottom_right: 10, bottom_left: 10};
         // These values are percentages of the smallest side of the rectangle
     }
-    
+
+    /**
+     * Initializes the relevant variables for this object
+     */
+    initializeObject() {
+        this.image_obj = null;
+        super.initializeObject();
+    }
+
     /**
      * Draws the rectangle on the canvas
      * @param context_obj The context object of our canvas
@@ -1032,11 +1053,19 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         // Let's add the provided image (if any) to the center of the rectangle
         if (typeof this.additional_options["image"] !== "undefined") {
             const img_coords = {x:this.bounding_rectangle_coords.x1+this.width/4,y:this.bounding_rectangle_coords.y1+this.height/4}
-            const img = new Image();
-            img.src = this.additional_options["image"];
-            context_obj.save();
-            context_obj.drawImage(img,img_coords.x,img_coords.y,this.width/2,this.height/2);
-            context_obj.restore();
+            if (this.image_obj === null) {
+                this.image_obj = new Image();
+                if (this.additional_options["image"].indexOf("http") !== -1) {
+                    this.image_obj.src = this.additional_options["image"];
+                } else {
+                    this.image_obj.src = this.dx_canvas_obj.getDxCanvasRoot()+this.additional_options["image"];
+                    this.image_obj.setAttribute('crossorigin', 'anonymous');
+                }
+            } else {
+                context_obj.save();
+                context_obj.drawImage(this.image_obj,img_coords.x,img_coords.y,this.width/2,this.height/2);
+                context_obj.restore();
+            }
         }
         
         // Let's add the provided text (if any) to the center of the rectangle
@@ -1126,8 +1155,11 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant variables for this object
      */
     initializeObject() {
+        this.image_obj = null
         this.is_expanded_bool = false;
         this.prevent_collapse = false;
+        this.expand_toggle_icon_image_obj = null;
+        this.collapse_toggle_icon_image_obj = null;
         this.expanded_width = 0;
         this.expanded_height = 0;
         this.content_padding = 5;
@@ -1356,12 +1388,20 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         
         // Let's add the provided image (if any) to the center of the rectangle
         if (typeof this.additional_options["image"] !== "undefined") {
-            const img_coords = {x:this.bounding_rectangle_coords.x1+this.width/4,y:this.bounding_rectangle_coords.y1+this.height/4}
-            const img = new Image();
-            img.src = this.additional_options["image"];
-            context_obj.save();
-            context_obj.drawImage(img,img_coords.x,img_coords.y,this.width/2,this.height/2);
-            context_obj.restore();
+            const img_coords = {x:this.bounding_rectangle_coords.x1+this.width/4,y:this.bounding_rectangle_coords.y1+this.height/4};
+            if (this.image_obj === null) {
+                this.image_obj = new Image();
+                if (this.additional_options["image"].indexOf("http") !== -1) {
+                    this.image_obj.src = this.additional_options["image"];
+                } else {
+                    this.image_obj.src = this.dx_canvas_obj.getDxCanvasRoot()+this.additional_options["image"];
+                    this.image_obj.setAttribute('crossorigin', 'anonymous');
+                }
+            } else {
+                context_obj.save();
+                context_obj.drawImage(this.image_obj,img_coords.x,img_coords.y,this.width/2,this.height/2);
+                context_obj.restore();
+            }
         }
         
         // Let's add the provided text (if any) to the center of the rectangle
@@ -1400,15 +1440,24 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         const icon_height = this.height < this.width ? this.height / 4 : this.width / 4;
         const icon_width = icon_height;
         const img_coords = {x:this.bounding_rectangle_coords.x2 - (icon_width*2),y:this.bounding_rectangle_coords.y1+this.height/2 - (icon_height/2)}
-        const img = new Image();
-        if (this.is_expanded_bool === true) {
-            img.src = this.dx_canvas_obj.getDxCanvasRoot()+"assets/images/chevron-arrow-up.png";
+        if ((this.expand_toggle_icon_image_obj === null) || (this.collapse_toggle_icon_image_obj === null)) {
+            this.expand_toggle_icon_image_obj = new Image();
+            this.expand_toggle_icon_image_obj.src = this.dx_canvas_obj.getDxCanvasRoot()+"assets/images/chevron-arrow-down.png";
+
+            this.collapse_toggle_icon_image_obj = new Image();
+            this.collapse_toggle_icon_image_obj.src = this.dx_canvas_obj.getDxCanvasRoot()+"assets/images/chevron-arrow-up.png";
+
+            this.expand_toggle_icon_image_obj.setAttribute('crossorigin', 'anonymous');
+            this.collapse_toggle_icon_image_obj.setAttribute('crossorigin', 'anonymous');
+        } else if (this.is_expanded_bool === true) {
+            context_obj.save();
+            context_obj.drawImage(this.collapse_toggle_icon_image_obj,img_coords.x,img_coords.y,icon_width,icon_height);
+            context_obj.restore();
         } else {
-            img.src = this.dx_canvas_obj.getDxCanvasRoot()+"assets/images/chevron-arrow-down.png";
+            context_obj.save();
+            context_obj.drawImage(this.expand_toggle_icon_image_obj,img_coords.x,img_coords.y,icon_width,icon_height);
+            context_obj.restore();
         }
-        context_obj.save();
-        context_obj.drawImage(img,img_coords.x,img_coords.y,icon_width,icon_height);
-        context_obj.restore();
     }
     
     /**
