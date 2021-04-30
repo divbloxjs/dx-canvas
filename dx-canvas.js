@@ -55,6 +55,7 @@ class DivbloxCanvas {
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
         this.canvas_obj.width = this.canvas_obj.parentElement.clientWidth;
+        
         this.canvas_obj.addEventListener('mousemove', this.onMouseMove.bind(this), false);
         this.canvas_obj.addEventListener('mouseenter', this.onMouseEnter.bind(this), false);
         this.canvas_obj.addEventListener('mouseleave', this.onMouseLeave.bind(this), false);
@@ -154,19 +155,21 @@ class DivbloxCanvas {
      * Cycles through the registered objects and draws them on the canvas
      */
     drawCanvas() {
+        const rect = this.canvas_obj.getBoundingClientRect();
+
         this.context_obj.save();
         this.context_obj.setTransform(1,0,0,1,0,0);
         this.context_obj.clearRect(0,0,this.canvas_obj.width,this.canvas_obj.height);
         this.context_obj.restore();
        
         this.context_obj.save();
-        const rect = this.canvas_obj.getBoundingClientRect();
+
         const transform = this.context_obj.getTransform();
         const rect_transformed =  {
-            left:(rect.left - transform.e) / transform.a,
-            top:(rect.top - transform.f) / transform.d,
-            right:(rect.right - transform.e) / transform.a,
-            bottom:(rect.bottom - transform.f) / transform.d,
+            left:(-transform.e) / transform.a,
+            top:(-transform.f) / transform.d,
+            right:(this.canvas_obj.width - transform.e) / transform.a,
+            bottom:(this.canvas_obj.height - transform.f) / transform.d,
         };
         this.context_obj.beginPath();
         this.context_obj.moveTo(rect_transformed.left,rect_transformed.top);
@@ -1198,19 +1201,19 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         
         const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.getContext());
         const screen_width = screen_coords.x2 - screen_coords.x1 - (2*this.content_padding) - (2*this.line_width);
-        const screen_height = screen_coords.y2 - screen_coords.y1 - (2*this.content_padding) - (2*this.line_width);
+        const screen_height = screen_coords.y2 - screen_coords.y3 - (2*this.content_padding) - (2*this.line_width);
 
         const transform = this.dx_canvas_obj.context_obj.getTransform();
 
-        this.content_html_element.style.width = (screen_width - this.line_width - (transform.a * 6))+"px";
-        this.content_html_element.style.height = (screen_height - this.line_width)+"px";
-        this.content_html_element.style.left = (screen_coords.x1 + this.line_width + (transform.a * 4))+"px";
-        this.content_html_element.style.top = (screen_coords.y1 + this.line_width)+"px";
+        this.content_html_element.style.width = screen_width+"px";
+        this.content_html_element.style.height = screen_height+"px";
+        this.content_html_element.style.left = (screen_coords.x1 + this.line_width + this.content_padding + dx_helpers.getWindowScrollPosition().x)+"px";
+        this.content_html_element.style.top = (screen_coords.y3 + this.line_width + this.content_padding + dx_helpers.getWindowScrollPosition().y)+"px";
         this.content_html_element.style.borderBottomRightRadius = this.relative_radius.bottom_right+"px";
         this.content_html_element.style.borderBottomLeftRadius = this.relative_radius.bottom_left+"px";
 
         // Once the content is scaled too tiny, we just want to hide the html content
-        if (transform.a < 0.25) {
+        if ((transform.a < 0.25) || (transform.d < 0.25)) {
             this.content_html_element.style.display = "none";
         }
     }
@@ -1226,14 +1229,15 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         const rect_transformed =  {
             left:(rect.left + transform.e) / transform.a,
             top:(rect.top + transform.f) / transform.d,
-            right:(rect.right + transform.e) / transform.a,
-            bottom:(rect.bottom + transform.f) / transform.d,
+            right:(rect.left + this.dx_canvas_obj.canvas_obj.width + transform.e) / transform.a,
+            bottom:(rect.top + this.dx_canvas_obj.canvas_obj.height + transform.f) / transform.d,
         };
         return {
             x1:transform.a*(this.bounding_rectangle_coords.x1 + rect_transformed.left),
-            y1:transform.d*(this.bounding_rectangle_coords.y3 + rect_transformed.top),
+            y1:transform.d*(this.bounding_rectangle_coords.y1 + rect_transformed.top),
             x2:transform.a*(this.bounding_rectangle_coords.x2 + rect_transformed.left),
             y2:transform.d*(this.bounding_rectangle_coords.y2 + rect_transformed.top),
+            y3:transform.d*(this.bounding_rectangle_coords.y3 + rect_transformed.top),
         };
     }
     
@@ -1412,6 +1416,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      */
     onClick() {
         super.onClick();
+
         if (this.prevent_collapse === true) {return;}
         if (this.validateExpansionAllowed() === true) {
             this.is_expanded_bool = !this.is_expanded_bool;
@@ -1451,19 +1456,12 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      * @return {boolean}
      */
     validateExpansionAllowed() {
-        if (this.prevent_collapse === true) {return true;}
         const rect = this.dx_canvas_obj.canvas_obj.getBoundingClientRect();
-        const transform = this.dx_canvas_obj.context_obj.getTransform();
-        const rect_transformed =  {
-            left:(rect.left - transform.e) / transform.a,
-            top:(rect.top - transform.f) / transform.d,
-            right:(rect.right - transform.e) / transform.a,
-            bottom:(rect.bottom - transform.f) / transform.d,
-        };
-        if ((this.bounding_rectangle_coords.x1 < rect_transformed.left) ||
-            (this.bounding_rectangle_coords.x2 > rect_transformed.right) ||
-            (this.bounding_rectangle_coords.y1 < rect_transformed.top) ||
-            (this.bounding_rectangle_coords.y2 > rect_transformed.bottom)) {
+        const screen_coords = this.getScreenCoordinates(this.dx_canvas_obj.context_obj);
+        if ((screen_coords.x1 < rect.left) ||
+            (screen_coords.x2 > rect.right) ||
+            (screen_coords.y1 < rect.top) ||
+            (screen_coords.y2 > rect.bottom)) {
             return false;
         }
         return true
@@ -1513,6 +1511,7 @@ const dx_helpers = {
         html = (new XMLSerializer).serializeToString(doc.body);
         return html;
     },
+
     /**
      * Draws an arrowhead on a canvas
      * @param context_obj
@@ -1532,6 +1531,20 @@ const dx_helpers = {
         context_obj.closePath();
         context_obj.restore();
         context_obj.fill();
+    },
+
+    /**
+     * Get the current scroll position of the document reliably
+     * @returns {{x: number, y: number}}
+     */
+    getWindowScrollPosition() {
+        const supportPageOffset = window.pageXOffset !== undefined;
+        const isCSS1Compat = ((document.compatMode || "") === "CSS1Compat");
+
+        const x = supportPageOffset ? window.pageXOffset : isCSS1Compat ? document.documentElement.scrollLeft : document.body.scrollLeft;
+        const y = supportPageOffset ? window.pageYOffset : isCSS1Compat ? document.documentElement.scrollTop : document.body.scrollTop;
+
+        return {x:x,y:y};
     }
 }
 //#endregion
