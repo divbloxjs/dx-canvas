@@ -1,7 +1,5 @@
 //TODO:
 // Add various object types:
-// - HTML Content Object fixes:
-//      Fix html content overflow when going over the edges of the canvas
 // - A Data model entity object
 // - BPMN nodes (Activity, decision, etc)
 // The ability to animate an object.
