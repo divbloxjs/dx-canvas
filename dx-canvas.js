@@ -7,6 +7,7 @@
 //    classes for each animation type. Thinking initially of a jiggle type animation for when
 //    DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
 // Find a way to build the input json from a logical flow of data
+// The ability to export the canvas as an image
 
 /**
  * If set to true, more logging will happen and certain elements will be drawn on the screen to aid debugging
