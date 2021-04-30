@@ -1208,18 +1208,10 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.content_html_element.style.borderBottomRightRadius = this.relative_radius.bottom_right+"px";
         this.content_html_element.style.borderBottomLeftRadius = this.relative_radius.bottom_left+"px";
 
+        // Once the content is scaled too tiny, we just want to hide the html content
         if (transform.a < 0.25) {
             this.content_html_element.style.display = "none";
         }
-       //TODO: This code was an attempt to get the content scaling right. Needs fixing
-       //
-       //  console.log("Tx: "+JSON.stringify(transform,null,2));
-       //  const html_children = this.content_html_element.children;
-       //  for (const html_child of html_children) {
-       //      html_child.style.transform = "scale("+(transform.a)+","+(transform.d)+") " +
-       //          "translate(-"+((screen_coords.x1 - (this.bounding_rectangle_coords.x1 * (2*transform.a))))+"px, " +
-       //          "-"+((screen_coords.y1 - (this.bounding_rectangle_coords.y3 * transform.d)))+"px)";
-       //  }
     }
     
     /**
