@@ -1,4 +1,7 @@
 <!doctype html>
+<!-- An example of how to include a dx-canvas instance into an existing html page.
+This page uses bootstrap to facilitate its UI, simply because it is easy to get started with-->
+
 <html lang="en">
 <head>
     <!-- Required meta tags -->
@@ -67,8 +70,8 @@
 <div id="data-div1">
     <iframe src="iframe_content.html" style="width:100%;border:none;height:100%;margin:0;"></iframe>
 </div>
-<script src="../dx-canvas.js"></script>
-<script src="custom-implementation.js"></script>
+<script src="../../dx-canvas.js"></script>
+<script src="../customization/custom-implementation.js"></script>
 <script>
     const script_start_index_int = window.location.href.indexOf("test.html");
     const root_str = window.location.href.substr(0,script_start_index_int);
@@ -77,7 +80,7 @@
     async function initCanvas() {
         const response = await fetch(root_str+'test-model.json');
         const data_json = await response.json();
-        dx_canvas = new MyCustomCanvas('dxCanvas',data_json,{dx_canvas_root:"../",background_color:"#E8F3EF",base_font_family:"Comic Sans MS"});
+        dx_canvas = new MyCustomCanvas('dxCanvas',data_json,{dx_canvas_root:"../../",background_color:"#E8F3EF",base_font_family:"Comic Sans MS"});
         const download_btn = document.getElementById('btnExportCanvas');
         download_btn.addEventListener('click', function () {
             dx_canvas.downloadCanvasPng();
