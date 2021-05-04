@@ -77,10 +77,10 @@
     async function initCanvas() {
         const response = await fetch(root_str+'test.json');
         const data_json = await response.json();
-        dx_canvas = new MyCustomCanvas('dxCanvas',data_json,{dx_canvas_root:"../",background_color:"rgba(40,141,34,0.13)"});
+        dx_canvas = new MyCustomCanvas('dxCanvas',data_json,{dx_canvas_root:"../",background_color:"#E8F3EF",base_font_family:"Comic Sans MS"});
         const download_btn = document.getElementById('btnExportCanvas');
         download_btn.addEventListener('click', function () {
-            window.location.href = dx_canvas.downloadCanvasPng().replace("image/png", "image/octet-stream");
+            dx_canvas.downloadCanvasPng();
         }, false);
     }
     initCanvas();

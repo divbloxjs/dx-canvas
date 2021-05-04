@@ -7,7 +7,6 @@
 //    classes for each animation type. Thinking initially of a jiggle type animation for when
 //    DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
 // Find a way to build the input json from a logical flow of data
-// The ability to export the canvas as an image
 
 /**
  * If set to true, more logging will happen and certain elements will be drawn on the screen to aid debugging
@@ -29,6 +28,7 @@ class DivbloxCanvas {
      * @param {string} options.dx_canvas_root  The path to the root of dx-canvas.js. Needed to reference local
      * assets
      * @param {string} options.background_color A HEX value that represents the background color of the canvas
+     * @param {string} options.base_font_family A string value that represents the base font of the canvas
      */
     constructor(element_id = "dxCanvas",objects = [],options = {}) {
         this.canvas_obj = document.getElementById(element_id);
@@ -45,6 +45,7 @@ class DivbloxCanvas {
         this.zoom_factor = 0.02;
         this.zoom_current = 0;
         this.root_path = "/";
+
         if (typeof options["dx_canvas_root"] !== "undefined") {
             this.root_path = options["dx_canvas_root"];
         }
@@ -52,6 +53,11 @@ class DivbloxCanvas {
         if (typeof options["background_color"] !== "undefined") {
             this.background_color = options["background_color"];
         }
+        this.base_font_family = "arial";
+        if (typeof options["base_font_family"] !== "undefined") {
+            this.base_font_family = options["base_font_family"].toLowerCase();
+        }
+
         this.setContext();
         this.canvas_obj.height = this.canvas_obj.parentElement.clientHeight;
         this.canvas_obj.width = this.canvas_obj.parentElement.clientWidth;
@@ -454,11 +460,14 @@ class DivbloxCanvas {
     }
 
     /**
-     * Returns a data url that represents the canvas as a PNG
-     * @returns {string}
+     * Initiates an image download in the browser with the provided file name
      */
-    downloadCanvasPng() {
-        return this.canvas_obj.toDataURL('image/png');
+    downloadCanvasPng(file_name = 'exported_image.png') {
+        const link_source = this.canvas_obj.toDataURL('image/png');
+        const download_link = document.createElement("a");
+        download_link.href = link_source;
+        download_link.download = file_name;
+        download_link.click();
     }
 }
 //#endregion
@@ -696,7 +705,7 @@ class DivbloxBaseCanvasObject {
             context_obj.save();
             
             const counter_text = this.additional_options["notification_count"];
-            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px arial";
+            context_obj.font = "small-caps bold "+this.notification_bubble_radius+"px "+this.dx_canvas_obj.base_font_family;
             
             const counter_text_width = Math.ceil(context_obj.measureText(counter_text).width) > (this.notification_bubble_radius) ?
                 Math.floor(context_obj.measureText(counter_text).width - (this.notification_bubble_radius / 2)) : 0;
@@ -1072,11 +1081,11 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
         if (typeof this.additional_options["text"] !== "undefined") {
             const max_font_size = this.height / 4;
             let font_size = max_font_size;
-            context_obj.font = "small-caps bold "+font_size+"px arial";
+            context_obj.font = "small-caps bold "+font_size+"px "+this.dx_canvas_obj.base_font_family;
             let text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
             while (text_width > (this.width * 0.8)) {
                 font_size = font_size - 0.5;
-                context_obj.font = "small-caps bold "+font_size+"px arial";
+                context_obj.font = "small-caps bold "+font_size+"px "+this.dx_canvas_obj.base_font_family;
                 text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
             }
             const text_coords = {x:this.x + (this.width / 2),y: this.y + (this.height / 2) + (font_size / 4)};
@@ -1191,6 +1200,11 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         }
         if (typeof this.additional_options["prevent_collapse"] !== "undefined") {
             this.prevent_collapse = this.additional_options["prevent_collapse"];
+        }
+
+        this.placeholder_text = "";
+        if (typeof this.additional_options["placeholder_text"] !== "undefined") {
+            this.placeholder_text = this.additional_options["placeholder_text"];
         }
         super.initializeObject();
 
@@ -1369,6 +1383,17 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.fillStyle = "#ffffff";
             context_obj.fill()
             context_obj.closePath();
+
+            // Write the placeholder text that is shown when the html content cannot be viewed
+            const font_height = (coords_with_lined_width.y2 - coords_with_lined_width.y1) * 0.1; //10% Of the height
+            context_obj.font = font_height+"px "+this.dx_canvas_obj.base_font_family;
+            context_obj.fillStyle = "#000000C1";
+            context_obj.textAlign = "center";
+            const center_coords = {
+                x:coords_with_lined_width.x1 + (coords_with_lined_width.x2 - coords_with_lined_width.x1) / 2,
+                y:coords_with_lined_width.y1 + (coords_with_lined_width.y2 - coords_with_lined_width.y1) / 2};
+            context_obj.fillText(this.placeholder_text, center_coords.x, center_coords.y);
+            //console.log("Coords: "+JSON.stringify(coords_with_lined_width,null,2));
         } else {
             context_obj.beginPath();
             context_obj.moveTo(this.x + this.relative_radius.top_left, this.y);
@@ -1409,11 +1434,11 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
             context_obj.save();
             const max_font_size = this.height / 4;
             let font_size = max_font_size;
-            context_obj.font = "small-caps bold "+font_size+"px arial";
+            context_obj.font = "small-caps bold "+font_size+"px "+this.dx_canvas_obj.base_font_family;
             let text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
             while (text_width > (this.width * 0.8)) {
                 font_size = font_size - 0.5;
-                context_obj.font = "small-caps bold "+font_size+"px arial";
+                context_obj.font = "small-caps bold "+font_size+"px "+this.dx_canvas_obj.base_font_family;
                 text_width = Math.ceil(context_obj.measureText(this.additional_options["text"]).width);
             }
             const text_coords = {x:this.x + (this.width / 2),y: this.y + (this.height / 2) + (font_size / 4)};
