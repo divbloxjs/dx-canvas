@@ -1383,7 +1383,6 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
                 x:coords_with_lined_width.x1 + (coords_with_lined_width.x2 - coords_with_lined_width.x1) / 2,
                 y:coords_with_lined_width.y1 + (coords_with_lined_width.y2 - coords_with_lined_width.y1) / 2};
             context_obj.fillText(this.placeholder_text, center_coords.x, center_coords.y);
-            //console.log("Coords: "+JSON.stringify(coords_with_lined_width,null,2));
         } else {
             context_obj.beginPath();
             context_obj.moveTo(this.x + this.relative_radius.top_left, this.y);
