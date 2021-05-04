@@ -13,7 +13,7 @@ class DivbloxCanvas {
      * Sets up the canvas, based on the provided html element id and then initializes the relevant objects defined
      * in the objects array
      * @param element_id The id of the html element that describes the canvas
-     * @param objects An array of objects to initialize on the canvas. See tests/test.json for an example
+     * @param objects An array of objects to initialize on the canvas. See examples/test-model.json for an example
      * @param options Additional options to pass
      * @param {string} options.dx_canvas_root  The path to the root of dx-canvas.js. Needed to reference local
      * assets
