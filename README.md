@@ -27,8 +27,8 @@ Usage:
     let dx_canvas = null;
     
     async function initCanvas() {
-        // Load our canvas model (JSON), assuming it is located in the root and called test-model.json
-        const response = await fetch(root_str+'test-model.json');
+        // Load our canvas model (JSON)
+        const response = await fetch(root_str+'test.json');
         const data_json = await response.json();
         
         // Instantiate the canvas using the model and specific options
@@ -44,7 +44,7 @@ Usage:
 </script>
 ````
 
-Additional examples of the following can be found in the /examples folder:
+Additional examples of the following can be found in the /tests folder:
 1. How to create your own custom implementation of dx-canvas
 2. How the canvas model (JSON) should be formatted
 3. How to include html content via an iframe onto your canvas
