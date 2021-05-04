@@ -14,11 +14,17 @@ By default, dx-canvas provides a few base objects that can be displayed on
 the canvas, but these can easily be adapted for any purpose. It is also 
 straight forward to add new object types for your specific requirements.
 
+Install: 
+````
+ npm install --save https://github.com/JohanGriesel/dx-canvas
+````
 Usage:
 ````
 <div id="dxCanvasWrapper">
     <canvas id="dxCanvas">Please upgrade your browser to view this content</canvas>
 </div>
+
+<script src="node_modules/dx-canvas/dx-canvas.js"></script>
 
 <script>
     // Get the path to the json file that contains our canvas model, assuming we are in the file index.html
@@ -32,7 +38,7 @@ Usage:
         const data_json = await response.json();
         
         // Instantiate the canvas using the model and specific options
-        dx_canvas = new DivbloxCanvas('dxCanvas',data_json,{dx_canvas_root:"../",background_color:"#E8F3EF",base_font_family:"Comic Sans MS"});
+        dx_canvas = new DivbloxCanvas('dxCanvas',data_json,{dx_canvas_root:"node_modules/dx-canvas/",background_color:"#E8F3EF",base_font_family:"Comic Sans MS"});
         
         // Example of how to download the canvas as an image
         const download_btn = document.getElementById('btnExportCanvas');
