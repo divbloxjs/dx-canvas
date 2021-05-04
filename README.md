@@ -44,7 +44,7 @@ Usage:
 </script>
 ````
 
-Additional examples of the following can be found in the /tests/ folder:
+Additional examples of the following can be found in the /tests folder:
 1. How to create your own custom implementation of dx-canvas
 2. How the canvas model (JSON) should be formatted
 3. How to include html content via an iframe onto your canvas
