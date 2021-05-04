@@ -1119,7 +1119,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      * bubble at the top right of the rectangle
      * @param {string} additional_options.notification_bubble_colour A HEX value representing the fill colour for
      * the notification bubble
-     * @param {string} additional_options.list_content_element_id The element id of the html div containing our list
+     * @param {string} additional_options.html_content_element_id The element id of the html div containing our list
      * data that should be displayed when expanded
      * @param {boolean} additional_options.start_expanded Optional. If set to true, the object will render as
      * expanded from the start
@@ -1163,10 +1163,10 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.expanded_height = 0;
         this.content_padding = 5;
         this.line_width = 4;
-        if (typeof this.additional_options["list_content_element_id"] === "undefined") {
+        if (typeof this.additional_options["html_content_element_id"] === "undefined") {
             throw new Error("No content div provided for data list");
         }
-        this.content_html_element = document.getElementById(this.additional_options["list_content_element_id"]);
+        this.content_html_element = document.getElementById(this.additional_options["html_content_element_id"]);
         if (typeof this.content_html_element === "undefined") {
             throw new Error("Invalid content div provided for data list");
         }
