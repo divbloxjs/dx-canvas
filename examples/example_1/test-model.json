@@ -3,16 +3,16 @@
     "type": "DivbloxBaseCircleCanvasObject",
     "x": 69,
     "y": 234,
-    "additional_options": {
+    "additionalOptions": {
       "uid": "1",
-      "is_draggable": true,
-      "fill_colour": "#239dc3",
+      "isDraggable": true,
+      "fillColour": "#239dc3",
       "dimensions": {
         "radius": 50
       },
       "image": "assets/images/tag.png",
-      "notification_count": 2,
-      "notification_bubble_colour": "#FF0000",
+      "notificationCount": 2,
+      "notificationBubbleColour": "#FF0000",
       "connections": [
         "2",
         "3"
@@ -24,18 +24,18 @@
     "type": "DivbloxBaseRectangleCanvasObject",
     "x": 210,
     "y": 53,
-    "additional_options": {
+    "additionalOptions": {
       "uid": "2",
-      "is_draggable": true,
-      "fill_colour": "#f9a02e",
+      "isDraggable": true,
+      "fillColour": "#f9a02e",
       "dimensions": {
         "width": 200,
         "height": 50
       },
       "text": "This is a nice title",
-      "text_colour": "#000000",
-      "notification_count": 0,
-      "notification_bubble_colour": "#FF0000",
+      "textColour": "#000000",
+      "notificationCount": 0,
+      "notificationBubbleColour": "#FF0000",
       "connections": [
         "3"
       ]
@@ -46,26 +46,26 @@
     "type": "DivbloxBaseHtmlCanvasObject",
     "x": 397,
     "y": 169,
-    "additional_options": {
+    "additionalOptions": {
       "uid": "3",
-      "is_draggable": true,
-      "fill_colour": "#00EEA6",
+      "isDraggable": true,
+      "fillColour": "#00EEA6",
       "dimensions": {
         "width": 300,
         "height": 50,
-        "expanded_dimensions": {
+        "expandedDimensions": {
           "width": 350,
           "height": 200
         }
       },
       "text": "This is a nice title",
-      "text_colour": "#000000",
-      "notification_count": 1,
-      "notification_bubble_colour": "#FF0000",
-      "html_content_element_id": "data-div1",
-      "placeholder_text": "Placeholder content",
-      "start_expanded": true,
-      "prevent_collapse": false
+      "textColour": "#000000",
+      "notificationCount": 1,
+      "notificationBubbleColour": "#FF0000",
+      "htmlContentElementId": "data-div1",
+      "placeholderText": "Placeholder content",
+      "startExpanded": true,
+      "preventCollapse": false
     },
     "data": {}
   }

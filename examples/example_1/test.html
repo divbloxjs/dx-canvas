@@ -73,26 +73,26 @@ This page uses bootstrap to facilitate its UI, simply because it is easy to get 
 <script src="../../dx-canvas.js"></script>
 <script src="../customization/custom-implementation.js"></script>
 <script>
-    const script_start_index_int = window.location.href.indexOf("test.html");
-    const root_str = window.location.href.substr(0,script_start_index_int);
-    let dx_canvas = null;
+    const scriptStartIndexInt = window.location.href.indexOf("test.html");
+    const rootStr = window.location.href.substr(0,scriptStartIndexInt);
+    let dxCanvas = null;
 
     async function initCanvas() {
-        const response = await fetch(root_str+'test-model.json');
-        const data_json = await response.json();
-        dx_canvas = new MyCustomCanvas('dxCanvas',data_json,{dx_canvas_root:"../../",background_color:"#E8F3EF",base_font_family:"Comic Sans MS"});
-        const download_btn = document.getElementById('btnExportCanvas');
-        download_btn.addEventListener('click', function () {
-            dx_canvas.downloadCanvasPng();
+        const response = await fetch(rootStr+'test-model.json');
+        const dataJson = await response.json();
+        dxCanvas = new MyCustomCanvas('dxCanvas',dataJson,{dxCanvasRoot:"../../",backgroundColor:"#E8F3EF",baseFontFamily:"Comic Sans MS"});
+        const downloadBtn = document.getElementById('btnExportCanvas');
+        downloadBtn.addEventListener('click', function () {
+            dxCanvas.downloadCanvasPng();
         }, false);
     }
     initCanvas();
 
     function saveCanvas() {
-        if (dx_canvas === null) {
+        if (dxCanvas === null) {
             console.log("Is null");
         }
-        console.log(JSON.stringify(dx_canvas.getCanvasJson(),null,2));
+        console.log(dxCanvas.getCanvasJson(false));
         alert("Canvas JSON printed in the browser console");
     }
 </script>
