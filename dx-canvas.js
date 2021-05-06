@@ -1605,7 +1605,6 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         }
     }
 }
-
 //#endregion
 
 //#region Helper functions
