@@ -8,12 +8,6 @@
 //    DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
 // Find a way to build the input json from a logical flow of data
 
-/**
- * If set to true, more logging will happen and certain elements will be drawn on the screen to aid debugging
- * @type {boolean}
- */
-const dxCanvasDebugMode = true;
-
 //#region The core DivbloxCanvas functionality
 /**
  * DivbloxCanvas manages the drawing and updating of a canvas along with user inputs
@@ -29,6 +23,8 @@ class DivbloxCanvas {
      * assets
      * @param {string} options.backgroundColor A HEX value that represents the background color of the canvas
      * @param {string} options.baseFontFamily A string value that represents the base font of the canvas
+     * @param {boolean} options.isDebugModeActive Optional. If set to true, more logging will happen and certain elements will be
+     * drawn on the screen to aid debugging
      */
     constructor(elementId = "dxCanvas", objects = [], options = {}) {
         this.canvas = document.getElementById(elementId);
@@ -56,6 +52,10 @@ class DivbloxCanvas {
         this.baseFontFamily = "arial";
         if (typeof options["baseFontFamily"] !== "undefined") {
             this.baseFontFamily = options["baseFontFamily"].toLowerCase();
+        }
+        this.isDebugModeActive = false;
+        if (typeof options["isDebugModeActive"] !== "undefined") {
+            this.isDebugModeActive = options["isDebugModeActive"];
         }
 
         this.setContext();
@@ -385,7 +385,9 @@ class DivbloxCanvas {
         this.validateEvent(event);
         event.preventDefault();
         const mouse = this.getMousePosition(event);
-        console.log("Mouse right clicked at: " + JSON.stringify(mouse));
+        if (this.isDebugModeActive === true) {
+            console.log("Mouse right clicked at: " + JSON.stringify(mouse));
+        }
         this.resetCanvas();
     }
 
@@ -553,7 +555,7 @@ class DivbloxBaseCanvasObject {
             this.uid = this.additionalOptions["uid"];
         }
         this.objectData = objectData;
-        this.showBoundingBox = false; //Debug purposes
+        this.showBoundingBox = this.dxCanvas.isDebugModeActive; //Debug purposes
         this.notificationBubbleRadius = 0;
         this.notificationBubbleColour = '#FF0000';
         this.notificationBubbleCoords = {x: this.x, y: this.y};
@@ -779,14 +781,18 @@ class DivbloxBaseCanvasObject {
      * This functions handles the on click event for this object. This should be implemented in a child class
      */
     onClick() {
-        console.log("Object " + this.getId() + " clicked");
+        if (this.dxCanvas.isDebugModeActive === true) {
+            console.log("Object " + this.getId() + " clicked");
+        }
     }
 
     /**
      * This functions handles the on double click event for this object. This should be implemented in a child class
      */
     onDoubleClick() {
-        console.log("Object " + this.getId() + " double clicked");
+        if (this.dxCanvas.isDebugModeActive === true) {
+            console.log("Object " + this.getId() + " double clicked");
+        }
     }
 
     /**
