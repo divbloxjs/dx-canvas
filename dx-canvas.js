@@ -23,6 +23,8 @@ class DivbloxCanvas {
      * assets
      * @param {string} options.backgroundColor A HEX value that represents the background color of the canvas
      * @param {string} options.baseFontFamily A string value that represents the base font of the canvas
+     * @param {boolean} options.mustFitToScreen Options. If set to true, the objects on the canvas will be zoomed to fit
+     * on the screen
      * @param {boolean} options.isDebugModeActive Optional. If set to true, more logging will happen and certain elements will be
      * drawn on the screen to aid debugging
      */
@@ -56,6 +58,12 @@ class DivbloxCanvas {
         this.isDebugModeActive = false;
         if (typeof options["isDebugModeActive"] !== "undefined") {
             this.isDebugModeActive = options["isDebugModeActive"];
+        }
+
+        this.mustFitToScreen = false;
+        this.hasZoomedToFitAfterLoad = false;
+        if (typeof options["mustFitToScreen"] !== "undefined") {
+            this.mustFitToScreen = options["mustFitToScreen"];
         }
 
         this.setContext();
@@ -226,6 +234,10 @@ class DivbloxCanvas {
     update() {
         this.drawCanvas();
         window.requestAnimationFrame(this.update.bind(this));
+        if (this.mustFitToScreen && !this.hasZoomedToFitAfterLoad) {
+            this.zoomToFitCurrentModel();
+            this.hasZoomedToFitAfterLoad = true;
+        }
     }
 
     /**
@@ -465,6 +477,68 @@ class DivbloxCanvas {
             this.zoomCurrent -= this.zoomFactor;
         }
         this.context.scale(zoomFactor, zoomFactor);
+    }
+
+    /**
+     * Zooms the canvas to fit all of the current objects
+     */
+    zoomToFitCurrentModel() {
+        const rect = this.canvas.getBoundingClientRect();
+        this.zoomToFitCustom({left: 0, top: 0,width: rect.width, height: rect.height})
+    }
+
+    /**
+     * Zooms the canvas to a level that contains the given boundaries
+     * @param {{left:number,top:number,width:number,height:number}} boundaries The maximums that should be contained
+     * within the zoomed canvas
+     */
+    zoomToFitCustom(boundaries = {}) {
+        this.resetCanvas();
+        const zoomPadding = {left: 5, top: 5, right: 15, bottom:15};
+        let transform = this.context.getTransform();
+        const rectTransformed = {
+            left: (-transform.e) / transform.a,
+            top: (-transform.f) / transform.d,
+            right: (this.canvas.width - transform.e) / transform.a,
+            bottom: (this.canvas.height - transform.f) / transform.d,
+        };
+        // Let's pan and zoom until rectTransformed is contained within boundaries
+        this.context.translate(rectTransformed.left + zoomPadding.left, rectTransformed.top + zoomPadding.top);
+
+        let currentMaximums = {x: 0, y: 0};
+        for (const objectId of Object.keys(this.objectList)) {
+            const object = this.objectList[objectId];
+            if (object.getBoundingRectangle().x2 > currentMaximums.x) {
+                currentMaximums.x = object.getBoundingRectangle().x2;
+            }
+            if (object.getBoundingRectangle().y2 > currentMaximums.y) {
+                currentMaximums.y = object.getBoundingRectangle().y2;
+            }
+        }
+
+        const boundaryMaximums = {x: (boundaries.left + boundaries.width - zoomPadding.right) * (1-this.zoomFactor),
+            y: (boundaries.top + boundaries.height - zoomPadding.bottom) * (1-this.zoomFactor)};
+
+        let maximumsTransformed = {x: currentMaximums.x * transform.a, y: currentMaximums.y / transform.d};
+
+        if ((maximumsTransformed.x > boundaryMaximums.x) ||
+            (maximumsTransformed.y > boundaryMaximums.y)) {
+
+            while ((maximumsTransformed.x > boundaryMaximums.x) ||
+                (maximumsTransformed.y > boundaryMaximums.y)) {
+                this.zoomCanvas(1);
+                transform = this.context.getTransform();
+                maximumsTransformed = {x: currentMaximums.x * transform.a, y: currentMaximums.y * transform.d};
+            }
+
+        } else {
+            while ((maximumsTransformed.x < boundaryMaximums.x) &&
+            (maximumsTransformed.y < boundaryMaximums.y)) {
+                this.zoomCanvas(-1);
+                transform = this.context.getTransform();
+                maximumsTransformed = {x: currentMaximums.x * transform.a, y: currentMaximums.y * transform.d};
+            }
+        }
     }
 
     /**
