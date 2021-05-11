@@ -483,62 +483,106 @@ class DivbloxCanvas {
      * Zooms the canvas to fit all of the current objects
      */
     zoomToFitCurrentModel() {
-        const rect = this.canvas.getBoundingClientRect();
-        this.zoomToFitCustom({left: 0, top: 0,width: rect.width, height: rect.height})
+        this.zoomToFitCustom(this.canvas.getBoundingClientRect());
     }
 
     /**
      * Zooms the canvas to a level that contains the given boundaries
      * @param {{left:number,top:number,width:number,height:number}} boundaries The maximums that should be contained
-     * within the zoomed canvas
+     * within the zoomed canvas. These values are screen coordinates.
      */
     zoomToFitCustom(boundaries = {}) {
         this.resetCanvas();
-        const zoomPadding = {left: 5, top: 5, right: 15, bottom:15};
-        let transform = this.context.getTransform();
-        const rectTransformed = {
-            left: (-transform.e) / transform.a,
-            top: (-transform.f) / transform.d,
-            right: (this.canvas.width - transform.e) / transform.a,
-            bottom: (this.canvas.height - transform.f) / transform.d,
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const zoomPadding = {left: 5, top: 5, right: 5, bottom:15};
+        const zoomPaddingTotals = {
+            x: zoomPadding.left + zoomPadding.right,
+            y: zoomPadding.top + zoomPadding.bottom
         };
-        // Let's pan and zoom until rectTransformed is contained within boundaries
-        this.context.translate(rectTransformed.left + zoomPadding.left, rectTransformed.top + zoomPadding.top);
 
-        let currentMaximums = {x: 0, y: 0};
+        let isFitted = false;
+        let counter = 0;
+        let isZoomingOut = false;
+        let isZoomingIn = false;
+        let isZooming = false;
+        let currentScreenBoundaries = this.getCanvasObjectScreenBoundaries();
+        while (!isFitted) {
+            const transform = this.context.getTransform();
+
+            const currentWidthToFit = currentScreenBoundaries.x2 - currentScreenBoundaries.x1;
+            const currentHeightToFit = currentScreenBoundaries.y2 - currentScreenBoundaries.y1;
+
+            const compareWidth = (boundaries.width - zoomPaddingTotals.x) * (1 - this.zoomFactor);
+            const compareHeight = (boundaries.height - zoomPaddingTotals.y) * (1 - this.zoomFactor);
+
+            isZooming = false;
+            if ((currentWidthToFit > compareWidth) ||
+                (currentHeightToFit > compareHeight)) {
+                // This means we need to zoom out
+                this.zoomCanvas(1);
+                isZoomingOut = isZooming = true;
+            }
+            if ((currentWidthToFit < compareWidth) &&
+                (currentHeightToFit < compareHeight) && !isZoomingOut) {
+                // This means we need to zoom in
+                this.zoomCanvas(-1);
+                isZoomingIn = isZooming = true;
+            }
+            currentScreenBoundaries = this.getCanvasObjectScreenBoundaries();
+            if (!isZooming) {
+                const valuesToPan = {
+                    x: (-currentScreenBoundaries.x1 + boundaries.left + zoomPadding.left) / transform.a,
+                    y: (-currentScreenBoundaries.y1 + boundaries.top + zoomPadding.top) / transform.d
+                };
+                this.context.translate(valuesToPan.x, valuesToPan.y);
+                isFitted = true;
+            } else {
+                counter++;
+                if (counter > 1000) {
+                    isFitted = true;
+                    console.error("Zoom to fit caused an infinite loop");
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the current maximum and minimum screen coordinates, calculated from all the objects on the canvas.
+     * @return {{y1: number, x1: number, y2: number, x2: number}}
+     */
+    getCanvasObjectScreenBoundaries() {
+        const context = this.getContext();
+        const canvasRectangle = this.canvas.getBoundingClientRect();
+        let screenBoundaries = {
+            x1: canvasRectangle.left,
+            y1: canvasRectangle.top,
+            x2: 0,
+            y2: 0}
+
         for (const objectId of Object.keys(this.objectList)) {
             const object = this.objectList[objectId];
-            if (object.getBoundingRectangle().x2 > currentMaximums.x) {
-                currentMaximums.x = object.getBoundingRectangle().x2;
+            const objectScreenCoords = object.getScreenCoordinates(context);
+            const objectScreenCoordsTranslated = {
+                x1: objectScreenCoords.x1 + canvasRectangle.left,
+                x2: objectScreenCoords.x2 + canvasRectangle.left,
+                y1: objectScreenCoords.y1 + canvasRectangle.top,
+                y2: objectScreenCoords.y2 + canvasRectangle.top}
+
+            if (objectScreenCoordsTranslated.x2 > screenBoundaries.x2) {
+                screenBoundaries.x2 = objectScreenCoordsTranslated.x2;
             }
-            if (object.getBoundingRectangle().y2 > currentMaximums.y) {
-                currentMaximums.y = object.getBoundingRectangle().y2;
-            }
-        }
-
-        const boundaryMaximums = {x: (boundaries.left + boundaries.width - zoomPadding.right) * (1-this.zoomFactor),
-            y: (boundaries.top + boundaries.height - zoomPadding.bottom) * (1-this.zoomFactor)};
-
-        let maximumsTransformed = {x: currentMaximums.x * transform.a, y: currentMaximums.y / transform.d};
-
-        if ((maximumsTransformed.x > boundaryMaximums.x) ||
-            (maximumsTransformed.y > boundaryMaximums.y)) {
-
-            while ((maximumsTransformed.x > boundaryMaximums.x) ||
-                (maximumsTransformed.y > boundaryMaximums.y)) {
-                this.zoomCanvas(1);
-                transform = this.context.getTransform();
-                maximumsTransformed = {x: currentMaximums.x * transform.a, y: currentMaximums.y * transform.d};
+            if (objectScreenCoordsTranslated.y2 > screenBoundaries.y2) {
+                screenBoundaries.y2 = objectScreenCoordsTranslated.y2;
             }
 
-        } else {
-            while ((maximumsTransformed.x < boundaryMaximums.x) &&
-            (maximumsTransformed.y < boundaryMaximums.y)) {
-                this.zoomCanvas(-1);
-                transform = this.context.getTransform();
-                maximumsTransformed = {x: currentMaximums.x * transform.a, y: currentMaximums.y * transform.d};
+            if (objectScreenCoordsTranslated.x1 < screenBoundaries.x1) {
+                screenBoundaries.x1 = objectScreenCoordsTranslated.x1;
+            }
+            if (objectScreenCoordsTranslated.y1 < screenBoundaries.y1) {
+                screenBoundaries.y1 = objectScreenCoordsTranslated.y1;
             }
         }
+        return screenBoundaries;
     }
 
     /**
