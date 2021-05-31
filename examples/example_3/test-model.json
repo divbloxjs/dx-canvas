@@ -1,0 +1,143 @@
+[
+  {
+    "type": "CustomCircleObject",
+    "x": 170,
+    "y": 123.18585510180415,
+    "additionalOptions": {
+      "uid": "1",
+      "isDraggable": true,
+      "fillColour": "#239dc3",
+      "dimensions": {
+        "radius": 50
+      },
+      "image": "assets/images/tag.png",
+      "notificationCount": 187,
+      "notificationBubbleColour": "#FF0000",
+      "connections": [
+        "2"
+      ]
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseHtmlCanvasObject",
+    "x": 41.35303324206757,
+    "y": 277.6980997737686,
+    "additionalOptions": {
+      "uid": "2",
+      "isDraggable": true,
+      "fillColour": "#00EEA6",
+      "dimensions": {
+        "width": 300,
+        "height": 50,
+        "expandedDimensions": {
+          "width": 350,
+          "height": 200
+        }
+      },
+      "text": "Interactive Example",
+      "textColour": "#000000",
+      "notificationCount": 1,
+      "notificationBubbleColour": "#FF0000",
+      "htmlContentElementId": "data-div1",
+      "placeholderText": "Placeholder content",
+      "startExpanded": true,
+      "preventCollapse": false,
+      "connections": [
+        "3"
+      ]
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseRectangleCanvasObject",
+    "x": 479.06092875340755,
+    "y": 375.2183111560997,
+    "additionalOptions": {
+      "uid": "3",
+      "isDraggable": true,
+      "fillColour": "#f9a02e",
+      "dimensions": {
+        "width": 200,
+        "height": 50
+      },
+      "text": "Action Example",
+      "textColour": "#000000",
+      "notificationCount": 0,
+      "notificationBubbleColour": "#FF0000",
+      "connections": [
+        "4"
+      ]
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseHtmlCanvasObject",
+    "x": 744.9775608947671,
+    "y": 367.3256342683994,
+    "additionalOptions": {
+      "uid": "4",
+      "isDraggable": true,
+      "fillColour": "#ea2d8d",
+      "dimensions": {
+        "width": 300,
+        "height": 50,
+        "expandedDimensions": {
+          "width": 350,
+          "height": 200
+        }
+      },
+      "text": "Expansion Example",
+      "textColour": "#ffffff",
+      "notificationCount": 0,
+      "notificationBubbleColour": "#FF0000",
+      "htmlContentElementId": "data-div2",
+      "placeholderText": "Placeholder content",
+      "startExpanded": false,
+      "preventCollapse": false,
+      "connections": [
+        "5"
+      ]
+    },
+    "data": {}
+  },
+  {
+    "type": "CustomCircleObject",
+    "x": 895.3165938325889,
+    "y": 181.2950106798539,
+    "additionalOptions": {
+      "uid": "5",
+      "isDraggable": true,
+      "fillColour": "#239dc3",
+      "dimensions": {
+        "radius": 50
+      },
+      "image": "assets/images/tag.png",
+      "notificationCount": 2,
+      "notificationBubbleColour": "#FF0000",
+      "connections": [
+        "6"
+      ]
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseRectangleCanvasObject",
+    "x": 1074,
+    "y": 152.7601056911655,
+    "additionalOptions": {
+      "uid": "6",
+      "isDraggable": true,
+      "fillColour": "#ceea2d",
+      "dimensions": {
+        "width": 200,
+        "height": 50
+      },
+      "text": "Action Example",
+      "textColour": "#000000",
+      "notificationCount": 0,
+      "notificationBubbleColour": "#FF0000"
+    },
+    "data": {}
+  }
+]

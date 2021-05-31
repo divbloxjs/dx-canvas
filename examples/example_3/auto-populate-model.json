@@ -1,0 +1,177 @@
+{
+  "configuration": {
+    "horizontalSpace": 150,
+    "verticalSpace": 100,
+    "routes": {
+      "1": {
+        "verticalMiddle": 800
+      },
+      "2": {
+        "verticalMiddle": 1800
+      }
+    },
+    "CircleObject1": {
+      "type": "CustomCircleObject",
+      "additionalOptions": {
+        "isDraggable": true,
+        "fillColour": "#239dc3",
+        "dimensions": {
+          "radius": 50
+        },
+        "image": "assets/images/tag.png"
+      }
+    },
+    "CircleObject2": {
+      "type": "CustomCircleObject",
+      "additionalOptions": {
+        "isDraggable": true,
+        "fillColour": "#C367D7FF",
+        "dimensions": {
+          "radius": 80
+        },
+        "notificationBubbleColour": "#FF0000",
+        "image": "assets/images/tag.png"
+      }
+    }
+  },
+  "routeObjects": [{
+    "route": "1",
+    "objects": [
+      {
+        "type": "CircleObject2",
+        "additionalOptions": {
+          "uid": "1",
+          "notificationCount": 0,
+          "connections": [
+            "2","3"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject1",
+        "additionalOptions": {
+          "uid": "2",
+          "notificationCount": 1,
+          "connections": [
+            "4"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject1",
+        "additionalOptions": {
+          "uid": "3",
+          "notificationCount": 1,
+          "connections": [
+            "4"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject2",
+        "additionalOptions": {
+          "uid": "4",
+          "notificationCount": 1,
+          "connections": [
+            "5"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject1",
+        "additionalOptions": {
+          "uid": "5",
+          "notificationCount": 1,
+          "connections": [
+            "6"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject2",
+        "additionalOptions": {
+          "uid": "6",
+          "notificationCount": 1
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "route": "2",
+    "objects": [
+      {
+        "type": "CircleObject2",
+        "additionalOptions": {
+          "uid": "1a",
+          "notificationCount": 0,
+          "connections": [
+            "2a","3a"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject1",
+        "additionalOptions": {
+          "uid": "2a",
+          "notificationCount": 1,
+          "connections": [
+            "4a"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject1",
+        "additionalOptions": {
+          "uid": "3a",
+          "notificationCount": 1,
+          "connections": [
+            "4a"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject2",
+        "additionalOptions": {
+          "uid": "4a",
+          "notificationCount": 1,
+          "connections": [
+            "5a"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject1",
+        "additionalOptions": {
+          "uid": "5a",
+          "notificationCount": 1,
+          "connections": [
+            "6a"
+          ]
+        },
+        "data": {}
+      },
+      {
+        "type": "CircleObject2",
+        "additionalOptions": {
+          "uid": "6a",
+          "notificationCount": 1,
+          "connections": [
+            "6"
+          ]
+        },
+        "data": {}
+      }
+    ]
+  }
+  ]
+}

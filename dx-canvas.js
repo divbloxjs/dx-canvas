@@ -1795,4 +1795,189 @@ const dxHelpers = {
         return {x: x, y: y};
     }
 }
+
+const dxCanvasAutoPopulate = {
+    configuration: {},
+    objectParents: {},
+    dataToPrepare: [],
+    preparedData: [],
+    preparedUids: [],
+    totalWidth: 0,
+    totalHeight: 0,
+    
+    prepareCanvasAutoPopulate(inputData = {}) {
+        if (typeof inputData["configuration"] === "undefined") {
+            throw new Error("No preparation configuration provided");
+        }
+        this.configuration = inputData["configuration"];
+        
+        if (typeof this.configuration["routes"] === "undefined") {
+            throw new Error("No preparation route configurations provided");
+        }
+        
+        if (typeof inputData["routeObjects"] === "undefined") {
+            throw new Error("No preparation routes provided");
+        }
+        for (const routeObject of inputData["routeObjects"]) {
+            this.totalWidth = 0;
+            this.dataToPrepare = routeObject["objects"];
+            this.prepareCanvasRoute(routeObject);
+        }
+        
+        return this.preparedData;
+    },
+    
+    prepareCanvasRoute(routeObject = {}) {
+        let verticalMiddle = 0;
+        let verticalSpace = 0;
+        if (typeof routeObject["route"] === "undefined") {
+            throw new Error("Incorrect route objects definition. No route id provided");
+        }
+        const routeId = routeObject["route"];
+        
+        if (typeof this.configuration["verticalSpace"] !== "undefined") {
+            verticalSpace = this.configuration["verticalSpace"];
+        }
+        
+        if ((typeof this.configuration["routes"][routeId] !== "undefined") &&
+            (typeof this.configuration["routes"][routeId]["verticalMiddle"] !== "undefined")) {
+            verticalMiddle = this.configuration["routes"][routeId]["verticalMiddle"];
+        }
+        
+        if (typeof this.configuration["horizontalSpace"] !== "undefined") {
+            this.totalWidth += this.configuration["horizontalSpace"];
+        }
+        for (const object of this.dataToPrepare) {
+            const preparedObjectResult = this.getPreparedObject(
+                object,
+                this.configuration,
+                {
+                    x: this.totalWidth,
+                    y: verticalMiddle});
+            if (preparedObjectResult === null) {
+                continue;
+            }
+            this.preparedData.push(preparedObjectResult.preparedObject);
+            this.totalWidth += preparedObjectResult.width;
+        
+            const childObjects = this.getObjectChildren(object);
+            if (childObjects.length > 0) {
+                if (typeof this.configuration["horizontalSpace"] !== "undefined") {
+                    this.totalWidth += this.configuration["horizontalSpace"];
+                }
+                let maxChildWidth = 0;
+                let childYCoordinates = {top:verticalMiddle,bottom:verticalMiddle};
+                let currentYPositionTop = true;
+                for (const childObject of childObjects) {
+                    let currentY = verticalMiddle;
+                    if (currentYPositionTop) {
+                        childYCoordinates.top -= verticalSpace;
+                        currentY = childYCoordinates.top;
+                    } else {
+                        childYCoordinates.bottom += verticalSpace;
+                        currentY = childYCoordinates.bottom;
+                    }
+                    
+                    currentYPositionTop = !currentYPositionTop;
+                    const preparedObjectResult = this.getPreparedObject(
+                        childObject,
+                        this.configuration,
+                        {
+                            x: this.totalWidth,
+                            y: currentY});
+                    if (preparedObjectResult === null) {
+                        continue;
+                    }
+                    this.preparedData.push(preparedObjectResult.preparedObject);
+                    if (preparedObjectResult.width > maxChildWidth) {
+                        maxChildWidth = preparedObjectResult.width;
+                    }
+                }
+                this.totalWidth += maxChildWidth;
+            }
+        
+            if (typeof this.configuration["horizontalSpace"] !== "undefined") {
+                this.totalWidth += this.configuration["horizontalSpace"];
+            }
+        }
+    },
+    
+    getPreparedObject(object = {}, configuration = {}, coords = {x:0,y:0}) {
+        if (typeof object["type"] === "undefined") {
+            throw new Error("Tried to declare an object with no type provided");
+        }
+        if (typeof object["additionalOptions"] === "undefined") {
+            throw new Error("Tried to declare an object with no options provided");
+        }
+        if (typeof object["additionalOptions"]["uid"] === "undefined") {
+            throw new Error("Tried to declare an object with no uid provided");
+        }
+        if (this.preparedUids.includes(object["additionalOptions"]["uid"])) {
+            return null;
+        }
+        this.preparedUids.push(object["additionalOptions"]["uid"]);
+        let preparedObject = {
+            "type": "DivbloxBaseCanvasObject",
+            "x": coords.x,
+            "y": coords.y,
+            "additionalOptions": object["additionalOptions"],
+            "data": {}
+        };
+        let objectTypeFinal = object.type;
+    
+        if (typeof configuration[objectTypeFinal] !== "undefined") {
+            if (typeof configuration[objectTypeFinal]["type"] === "undefined") {
+                throw new Error("Tried to declare an object with unknown type '"+objectTypeFinal+"'");
+            }
+            const preSetType = objectTypeFinal;
+            objectTypeFinal = configuration[objectTypeFinal]["type"];
+        
+            if (typeof configuration[preSetType]["additionalOptions"] !== "undefined") {
+                for (const additionalOption of Object.keys(configuration[preSetType]["additionalOptions"])) {
+                    preparedObject.additionalOptions[additionalOption] = configuration[preSetType]["additionalOptions"][additionalOption];
+                }
+            }
+        }
+    
+        preparedObject.type = objectTypeFinal;
+    
+        if (typeof preparedObject.additionalOptions["dimensions"] === "undefined") {
+            throw new Error("Tried to declare an object with no dimensions provided");
+        }
+        let objectWidth = 0;
+        if (typeof preparedObject.additionalOptions["dimensions"]["radius"] !== "undefined") {
+            // This is a circle object
+            objectWidth = 2 * preparedObject.additionalOptions["dimensions"]["radius"]
+        } else if (typeof preparedObject.additionalOptions["dimensions"]["width"] !== "undefined") {
+            // This is not a circle object
+            objectWidth = preparedObject.additionalOptions["dimensions"]["width"];
+        }
+//        console.log("Positioning new object: "+JSON.stringify(preparedObject,null,2));
+        return {"preparedObject":preparedObject,"width":objectWidth};
+    },
+    
+    getObjectChildren(object = {}) {
+        if (typeof object["additionalOptions"] === "undefined") {
+            throw new Error("Tried to declare an object with no options provided");
+        }
+        if (typeof object["additionalOptions"]["connections"] === "undefined") {
+            return [];
+        }
+        let childObjects = [];
+        for (const childUid of object["additionalOptions"]["connections"]) {
+            for (const globalObject of this.dataToPrepare) {
+                if (typeof globalObject["additionalOptions"]["uid"] === "undefined") {
+                    throw new Error("Tried to declare an object with no uid provided");
+                }
+                if (globalObject.additionalOptions.uid === childUid) {
+                    childObjects.push(globalObject);
+                }
+                if (childObjects.length === object["additionalOptions"]["connections"].length) {
+                    return childObjects;
+                }
+            }
+        }
+        return childObjects;
+    }
+}
 //#endregion

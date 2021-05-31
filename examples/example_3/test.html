@@ -1,0 +1,131 @@
+<!doctype html>
+<!-- An example of how to include a dx-canvas instance into an existing html page.
+This page uses bootstrap to facilitate its UI, simply because it is easy to get started with-->
+
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+    <style>
+        #dxCanvasWrapper {
+            padding:0 !important;
+            margin:0 !important;
+            width: 100%;
+            height: 100%;
+            /*border:1px solid black;*/
+        }
+        #dxCanvasWrapper >canvas {
+            padding:0 !important;
+            margin:0 !important;
+            width:100%;
+            height:100%;
+            /*border:1px solid red;*/
+        }
+    </style>
+    <title>Dx Canvas - Example</title>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <h1 class="mb-0">Divblox Canvas - Example</h1>
+        <small class="text-muted mb-2">This page simiulates how Divblox Canvas can fit into an existing html page</small>
+        <div class="col-md-10">
+            <div id="dxCanvasWrapper">
+                <canvas id="dxCanvas">Please upgrade your browser to view this content</canvas>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <h5>Example Functions</h5>
+            <div class="d-grid gap-2 col-12 mx-auto">
+                <button class="btn btn-primary" type="button" onclick="saveCanvas();">Save Canvas</button>
+                <button id="btnExportCanvas" class="btn btn-primary" type="button">Export Canvas (.png)</button>
+                <button class="btn btn-primary" type="button" onclick="zoomToFit();">Zoom to fit</button>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <h1 class="mt-2">Additional Content</h1>
+            <div id="lipsum">
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed finibus sapien sit amet felis luctus consequat vel in sem. Quisque blandit arcu non dapibus laoreet. Suspendisse volutpat elit at justo blandit, id finibus odio molestie. Suspendisse sit amet commodo mauris. Fusce venenatis, nibh et laoreet blandit, massa dui sollicitudin lorem, ut tincidunt neque felis non urna. Ut arcu lacus, tempus in pellentesque nec, sagittis sit amet neque. Nunc risus mauris, tristique at imperdiet sit amet, semper ut nisi. Duis nec mattis lectus, vitae congue turpis. Donec sit amet metus velit. Suspendisse congue non enim eu tempor. Pellentesque sollicitudin hendrerit laoreet. Quisque feugiat ex nec ipsum lacinia, id commodo justo pulvinar. Maecenas iaculis mauris in massa malesuada consectetur. Etiam interdum erat a est iaculis, sed commodo risus dignissim. Mauris facilisis vehicula risus id tempor. Vivamus lobortis dapibus arcu.
+                </p>
+                <p>
+                    Phasellus laoreet semper mi ac pulvinar. Cras magna metus, porta aliquet congue rutrum, mattis a sem. Nam ac eleifend odio. Vestibulum efficitur magna elit, et iaculis risus viverra porta. Vivamus et ultrices lorem, et euismod tellus. Duis vulputate lacus ac auctor tristique. Curabitur consectetur augue convallis, tempor arcu et, consequat odio. Aenean mauris risus, auctor sit amet justo sed, tincidunt eleifend quam. Cras id euismod tellus. Nam tempus, tortor malesuada auctor aliquet, eros nulla facilisis sapien, a bibendum tellus diam ac sapien. In bibendum nisl eu est luctus porttitor. Vestibulum a sapien dictum, lobortis elit vitae, vehicula orci. Curabitur commodo sem ipsum, semper rutrum nulla faucibus at. Donec finibus ligula sed ante facilisis, id tincidunt quam volutpat.
+                </p>
+                <p>
+                    Fusce quis commodo ipsum, sed vestibulum enim. Proin nec diam ut lacus efficitur accumsan id nec ante. Proin malesuada facilisis ex, viverra mattis mauris blandit sed. In pharetra est nulla, sit amet dignissim massa commodo in. Cras tellus nisi, imperdiet elementum augue non, blandit gravida nibh. Pellentesque molestie elit tellus, non iaculis felis dapibus a. Cras dolor libero, dapibus venenatis sagittis scelerisque, aliquam ut urna.
+                </p>
+                <p>
+                    Aliquam in dui in nisl fringilla tempor. Pellentesque eu suscipit magna. Suspendisse potenti. Etiam condimentum magna sit amet velit malesuada, quis rhoncus nulla euismod. Curabitur dictum lacinia ante, ut euismod massa ornare cursus. Mauris rhoncus blandit velit ac volutpat. Curabitur at rutrum dui, vitae porttitor ipsum. Vestibulum non magna neque. Donec porta porta libero pellentesque vulputate. Fusce eget augue eros. Mauris nec enim quis leo semper rhoncus. Curabitur sollicitudin dictum risus, quis consequat odio ultricies at.
+                </p>
+                <p>
+                    Integer sagittis nec mauris eget euismod. Nunc viverra arcu nec massa auctor bibendum. Nunc dignissim ante in nisl posuere, id lacinia magna finibus. Etiam posuere, nunc ut fringilla ultrices, ante odio auctor diam, at ultrices lacus leo non sapien. Nullam vel ipsum at risus cursus tristique lobortis ut nisl. Nullam mollis sollicitudin mi sit amet scelerisque. Nam sodales laoreet imperdiet. Maecenas eget nunc nec nulla fermentum placerat. Etiam rutrum mi vel justo aliquet consequat. Praesent sed sapien ut massa tincidunt eleifend ut quis erat. Nunc dictum rutrum orci. Suspendisse nec dapibus tortor, et blandit dolor. Donec eu sollicitudin massa. Pellentesque arcu orci, blandit aliquet rutrum vitae, faucibus a diam. Suspendisse varius cursus erat.
+                </p></div>
+        </div>
+    </div>
+</div>
+
+<div id="data-div1">
+    <iframe src="iframe_content.html" style="width:100%;border:none;height:100%;margin:0;"></iframe>
+</div>
+<div id="data-div2">
+    <iframe src="iframe_content.html" style="width:100%;border:none;height:100%;margin:0;"></iframe>
+</div>
+<script src="../../dx-canvas.js"></script>
+<script src="custom-implementation.js"></script>
+<script>
+    const scriptStartIndexInt = window.location.href.indexOf("test.html");
+    const rootStr = window.location.href.substr(0,scriptStartIndexInt);
+    let dxCanvas = null;
+
+    async function initCanvas() {
+        const response = await fetch(rootStr+'auto-populate-model.json');
+        const dataJson = await response.json();
+        dxCanvas = new MyCustomCanvas(
+            'dxCanvas',
+            dxCanvasAutoPopulate.prepareCanvasAutoPopulate(dataJson),
+            {
+                dxCanvasRoot: "../../",
+                backgroundColor: "#E8F3EF",
+                baseFontFamily: "Comic Sans MS",
+                isDebugModeActive: false,
+                mustFitToScreen: true
+            });
+        const downloadBtn = document.getElementById('btnExportCanvas');
+        downloadBtn.addEventListener('click', function () {
+            dxCanvas.downloadCanvasPng();
+        }, false);
+    }
+    initCanvas();
+
+    function saveCanvas() {
+        if (dxCanvas === null) {
+            console.log("Is null");
+        }
+        console.log(dxCanvas.getCanvasJson(false));
+        alert("Canvas JSON printed in the browser console");
+    }
+
+    function zoomToFit() {
+        if (dxCanvas === null) {
+            console.log("Is null");
+        }
+        dxCanvas.zoomToFitCurrentModel();
+        //dxCanvas.zoomToFitCustom({left:1500,top:200,width:200,height:200});
+    }
+</script>
+<!-- Optional JavaScript; choose one of the two! -->
+
+<!-- Option 1: Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-p34f1UUtsS3wqzfto5wAAmdvj+osOnFyQFpp4Ua3gs/ZVWx6oOypYoCJhGGScy+8" crossorigin="anonymous"></script>
+
+<!-- Option 2: Separate Popper and Bootstrap JS -->
+<!--
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js" integrity="sha384-SR1sx49pcuLnqZUnnPwx6FCym0wLsk5JZuNx2bPPENzswTNFaQU1RDvt3wT4gWFG" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.min.js" integrity="sha384-j0CNLUeiqtyaRmlzUHCPZ+Gy5fQu0dQ6eZ/xAww941Ai1SxSY+0EQqNXNE6DZiVc" crossorigin="anonymous"></script>
+-->
+</body>
+</html>
