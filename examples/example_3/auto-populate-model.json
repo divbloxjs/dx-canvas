@@ -1,13 +1,15 @@
 {
   "configuration": {
     "horizontalSpace": 150,
-    "verticalSpace": 100,
+    "verticalSpace": 120,
     "routes": {
       "1": {
-        "verticalMiddle": 800
+        "verticalMiddle": 200,
+        "horizontalStart": 0
       },
       "2": {
-        "verticalMiddle": 1800
+        "verticalMiddle": 600,
+        "horizontalStart": 200
       }
     },
     "CircleObject1": {
@@ -43,7 +45,7 @@
           "uid": "1",
           "notificationCount": 0,
           "connections": [
-            "2","3"
+            "2","3","4"
           ]
         },
         "data": {}
@@ -54,7 +56,7 @@
           "uid": "2",
           "notificationCount": 1,
           "connections": [
-            "4"
+            "5"
           ]
         },
         "data": {}
@@ -65,13 +67,13 @@
           "uid": "3",
           "notificationCount": 1,
           "connections": [
-            "4"
+            "5"
           ]
         },
         "data": {}
       },
       {
-        "type": "CircleObject2",
+        "type": "CircleObject1",
         "additionalOptions": {
           "uid": "4",
           "notificationCount": 1,

@@ -1821,6 +1821,15 @@ const dxCanvasAutoPopulate = {
         for (const routeObject of inputData["routeObjects"]) {
             this.totalWidth = 0;
             this.dataToPrepare = routeObject["objects"];
+            if (typeof routeObject["route"] === "undefined") {
+                throw new Error("Incorrect route objects definition. No route id provided");
+            }
+            if (typeof this.configuration["routes"][routeObject["route"]] === "undefined") {
+                throw new Error("Incorrect route configuration provided");
+            }
+            if (typeof this.configuration["routes"][routeObject["route"]]["horizontalStart"] !== "undefined") {
+                this.totalWidth = this.configuration["routes"][routeObject["route"]]["horizontalStart"];
+            }
             this.prepareCanvasRoute(routeObject);
         }
         
@@ -1830,9 +1839,6 @@ const dxCanvasAutoPopulate = {
     prepareCanvasRoute(routeObject = {}) {
         let verticalMiddle = 0;
         let verticalSpace = 0;
-        if (typeof routeObject["route"] === "undefined") {
-            throw new Error("Incorrect route objects definition. No route id provided");
-        }
         const routeId = routeObject["route"];
         
         if (typeof this.configuration["verticalSpace"] !== "undefined") {
@@ -1868,15 +1874,25 @@ const dxCanvasAutoPopulate = {
                 let maxChildWidth = 0;
                 let childYCoordinates = {top:verticalMiddle,bottom:verticalMiddle};
                 let currentYPositionTop = true;
+                const isOdd = childObjects.length % 2 !== 0;
+                let currentChildIndex = 0;
                 for (const childObject of childObjects) {
+                    currentChildIndex++;
                     let currentY = verticalMiddle;
-                    if (currentYPositionTop) {
-                        childYCoordinates.top -= verticalSpace;
-                        currentY = childYCoordinates.top;
+                    if (isOdd && (currentChildIndex === 1)) {
+                        //currentY stays = verticalMiddle
                     } else {
-                        childYCoordinates.bottom += verticalSpace;
-                        currentY = childYCoordinates.bottom;
+                        if (currentYPositionTop) {
+                            childYCoordinates.top -= verticalSpace;
+                            currentY = childYCoordinates.top;
+                        } else {
+                            childYCoordinates.bottom += verticalSpace;
+                            currentY = childYCoordinates.bottom;
+                        }
                     }
+                    
+                    
+                    currentY = childObjects.length === 1 ? verticalMiddle : currentY;
                     
                     currentYPositionTop = !currentYPositionTop;
                     const preparedObjectResult = this.getPreparedObject(
