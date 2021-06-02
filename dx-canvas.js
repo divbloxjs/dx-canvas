@@ -1,4 +1,5 @@
 //TODO:
+// Improve connections with proper besier curves and arrows that are either horizontal or vertical, always
 // Add various object types:
 // - A Data model entity object
 // - BPMN nodes (Activity, decision, etc)
@@ -6,7 +7,6 @@
 //  - Have a base animation class that deals with the animation basics and then child
 //    classes for each animation type. Thinking initially of a jiggle type animation for when
 //    DivbloxBaseHtmlCanvasObject is not allowed to expand, or when an object is not allowed to be dragged, etc
-// Find a way to build the input json from a logical flow of data
 
 //#region The core DivbloxCanvas functionality
 /**
@@ -1796,6 +1796,12 @@ const dxHelpers = {
     }
 }
 
+/**
+ * Responsible for populating objects on the canvas, based on a dataset that does not contain exact coordinates.
+ * Specifically, it tries to map "routes" from left to right on the canvas, creating links between objects.
+ * An example input json file is provided in the example_3 folder
+ * @type {{objectParents: {}, totalHeight: number, getPreparedObject(*=, *=, *=): (null|{preparedObject: {additionalOptions, data: {}, x: number, y: number, type: string}, width: number}), configuration: {}, preparedUids: *[], getObjectChildren(*=): ([]|*[]), prepareCanvasAutoPopulate(*=): [], prepareCanvasRoute(*=): void, dataToPrepare: *[], preparedData: *[], totalWidth: number}}
+ */
 const dxCanvasAutoPopulate = {
     configuration: {},
     objectParents: {},
@@ -1805,6 +1811,12 @@ const dxCanvasAutoPopulate = {
     totalWidth: 0,
     totalHeight: 0,
     
+    /**
+     * Takes the input data (An example of which is located in the example_3 folder and prepares the data to be returned
+     * to the normal DivbloxCanvas constructor
+     * @param {[]} inputData
+     * @return {[]} An object that is ready to be passed to the DivbloxCanvas constructor
+     */
     prepareCanvasAutoPopulate(inputData = {}) {
         if (typeof inputData["configuration"] === "undefined") {
             throw new Error("No preparation configuration provided");
@@ -1836,6 +1848,11 @@ const dxCanvasAutoPopulate = {
         return this.preparedData;
     },
     
+    /**
+     * Processes a specified route that is to be mapped onto the canvas, meaning all of the objects defined, as well as
+     * their children, are mapped with auto-generated x & y coordinates
+     * @param routeObject
+     */
     prepareCanvasRoute(routeObject = {}) {
         let verticalMiddle = 0;
         let verticalSpace = 0;
@@ -1918,6 +1935,13 @@ const dxCanvasAutoPopulate = {
         }
     },
     
+    /**
+     * Prepares a single object for the DivbloxCanvas with x & y coordinates
+     * @param object
+     * @param configuration
+     * @param coords
+     * @return {null|{preparedObject: {additionalOptions, data: {}, x: number, y: number, type: string}, width: number}}
+     */
     getPreparedObject(object = {}, configuration = {}, coords = {x:0,y:0}) {
         if (typeof object["type"] === "undefined") {
             throw new Error("Tried to declare an object with no type provided");
@@ -1972,6 +1996,11 @@ const dxCanvasAutoPopulate = {
         return {"preparedObject":preparedObject,"width":objectWidth};
     },
     
+    /**
+     * Returns all the children of a given object. These will be connections on the DivbloxCanvas
+     * @param object
+     * @return {*[]}
+     */
     getObjectChildren(object = {}) {
         if (typeof object["additionalOptions"] === "undefined") {
             throw new Error("Tried to declare an object with no options provided");
