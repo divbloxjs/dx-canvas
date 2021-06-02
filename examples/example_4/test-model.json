@@ -1,0 +1,41 @@
+[
+  {
+    "type": "DivbloxBaseCircleCanvasObject",
+    "x": 400,
+    "y": 334,
+    "additionalOptions": {
+      "uid": "1",
+      "isDraggable": true,
+      "fillColour": "#239dc3",
+      "dimensions": {
+        "radius": 250
+      },
+      "image": "assets/images/tag.png",
+      "notificationCount": 2,
+      "notificationBubbleColour": "#FF0000",
+      "connections": [
+        "2"
+      ]
+    },
+    "data": {}
+  },
+  {
+    "type": "DivbloxBaseRectangleCanvasObject",
+    "x": 710,
+    "y": 753,
+    "additionalOptions": {
+      "uid": "2",
+      "isDraggable": true,
+      "fillColour": "#f9a02e",
+      "dimensions": {
+        "width": 200,
+        "height": 50
+      },
+      "text": "This is a nice title",
+      "textColour": "#000000",
+      "notificationCount": 0,
+      "notificationBubbleColour": "#FF0000"
+    },
+    "data": {}
+  }
+]

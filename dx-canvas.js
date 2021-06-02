@@ -27,6 +27,8 @@ class DivbloxCanvas {
      * on the screen
      * @param {boolean} options.isDebugModeActive Optional. If set to true, more logging will happen and certain elements will be
      * drawn on the screen to aid debugging
+     * @param {string} options.connectionsCurveType Optional. Can be either "straight" or "curved". If set,
+     * DivbloxCanvas draws connections based on the provided option.
      */
     constructor(elementId = "dxCanvas", objects = [], options = {}) {
         this.canvas = document.getElementById(elementId);
@@ -43,6 +45,11 @@ class DivbloxCanvas {
         this.zoomFactor = 0.02;
         this.zoomCurrent = 0;
         this.rootPath = "/";
+        this.connectionsCurveType = "curved";
+        
+        if (typeof options["connectionsCurveType"] !== "undefined") {
+            this.connectionsCurveType = options["connectionsCurveType"];
+        }
 
         if (typeof options["dxCanvasRoot"] !== "undefined") {
             this.rootPath = options["dxCanvasRoot"];
@@ -787,54 +794,122 @@ class DivbloxBaseCanvasObject {
         if ((typeof this.additionalOptions["connections"] === "undefined") || (this.additionalOptions["connections"].length === 0)) {
             return;
         }
-        const arrowHeadLength = 25;
+        let arrowHeadLength = 18;
         for (const connectionUid of this.additionalOptions["connections"]) {
             const connectedObj = this.dxCanvas.getObjectByUid(connectionUid);
             if (connectedObj === null) {
                 continue;
             }
             const connectedObjBoundingRectangle = connectedObj.getBoundingRectangle();
+            if ((connectedObjBoundingRectangle.x1 <= this.boundingRectangleCoords.x2) &&
+                (connectedObjBoundingRectangle.y1 <= this.boundingRectangleCoords.y2) &&
+                (connectedObjBoundingRectangle.x2 >= this.boundingRectangleCoords.x1) &&
+                (connectedObjBoundingRectangle.y2 >= this.boundingRectangleCoords.y1)) {
+                continue;
+            }
             let connectorCoords = {
                 x1: this.boundingRectangleCoords.x1 + ((this.boundingRectangleCoords.x2 - this.boundingRectangleCoords.x1) / 2),
                 y1: this.boundingRectangleCoords.y1 + ((this.boundingRectangleCoords.y2 - this.boundingRectangleCoords.y1) / 2),
                 x2: connectedObjBoundingRectangle.x1 + ((connectedObjBoundingRectangle.x2 - connectedObjBoundingRectangle.x1) / 2),
                 y2: connectedObjBoundingRectangle.y1 + ((connectedObjBoundingRectangle.y2 - connectedObjBoundingRectangle.y1) / 2),
+                centralX1: this.boundingRectangleCoords.x1 + ((this.boundingRectangleCoords.x2 - this.boundingRectangleCoords.x1) / 2),
+                centralX2: connectedObjBoundingRectangle.x1 + ((connectedObjBoundingRectangle.x2 - connectedObjBoundingRectangle.x1) / 2),
+                centralY1: this.boundingRectangleCoords.y1 + ((this.boundingRectangleCoords.y2 - this.boundingRectangleCoords.y1) / 2),
+                centralY2: connectedObjBoundingRectangle.y1 + ((connectedObjBoundingRectangle.y2 - connectedObjBoundingRectangle.y1) / 2),
                 arrowX: 0,
-                arrowY: 0
+                arrowY: 0,
+                deltaX: 0,
+                deltaY: 0,
+                cp1x: 0,
+                cp1y: 0,
+                cp2x: 0,
+                cp2y: 0,
             };
-
-            if (connectedObjBoundingRectangle.y1 > this.boundingRectangleCoords.y2) {
-                // This means the connected object is below the current object
-                connectorCoords.y1 = this.boundingRectangleCoords.y2;
-                connectorCoords.y2 = connectedObjBoundingRectangle.y1;
-            } else if (connectedObjBoundingRectangle.y2 < this.boundingRectangleCoords.y1) {
-                connectorCoords.y1 = this.boundingRectangleCoords.y1;
-                connectorCoords.y2 = connectedObjBoundingRectangle.y2;
-            } else {
-                // Deal with left or right side, since this connects is level with the current object
-                if (connectedObjBoundingRectangle.x1 > this.boundingRectangleCoords.x2) {
+            const controlPointFactor = this.dxCanvas.connectionsCurveType === "curved" ? 0.9 : 0;
+            const angleAdjustmentFactor = this.dxCanvas.connectionsCurveType === "curved" ? 0.3 : 1;
+            let controlPointFactors = {x: 0,y: 0};
+            let arrowAngle = 0;
+            let minimumDistance = arrowHeadLength;
+            
+            if ((Math.abs(connectorCoords.centralX2 - connectorCoords.centralX1) >
+                Math.abs(connectorCoords.centralY2 - connectorCoords.centralY1)) &&
+                ((connectedObjBoundingRectangle.x1 > this.boundingRectangleCoords.x2) ||
+                (connectedObjBoundingRectangle.x2 < this.boundingRectangleCoords.x1))) {
+                // This means we should treat the connected object as "on the side"
+                controlPointFactors.x = controlPointFactor;
+                if (connectorCoords.centralX2 > connectorCoords.centralX1) {
+                    // On the right side
                     connectorCoords.x1 = this.boundingRectangleCoords.x2;
                     connectorCoords.x2 = connectedObjBoundingRectangle.x1;
-                } else if (connectedObjBoundingRectangle.x2 < this.boundingRectangleCoords.x1) {
+                    arrowAngle = 90 * Math.PI / 180;
+                    connectorCoords.arrowX = 1;
+                } else {
+                    // On the left side
                     connectorCoords.x1 = this.boundingRectangleCoords.x1;
                     connectorCoords.x2 = connectedObjBoundingRectangle.x2;
+                    arrowAngle = 270 * Math.PI / 180;
+                    connectorCoords.arrowX = -1;
+                }
+                if (Math.abs(connectorCoords.x2 - connectorCoords.x1) < minimumDistance) {
+                    minimumDistance = Math.abs(connectorCoords.x2 - connectorCoords.x1);
+                }
+            } else {
+                // This means we should treat the connected object as "on the top or bottom"
+                controlPointFactors.y = controlPointFactor;
+                if (connectorCoords.centralY2 > connectorCoords.centralY1) {
+                    // Below
+                    connectorCoords.y1 = this.boundingRectangleCoords.y2;
+                    connectorCoords.y2 = connectedObjBoundingRectangle.y1;
+                    controlPointFactors.y = controlPointFactor;
+                    arrowAngle = 180 * Math.PI / 180;
+                    connectorCoords.arrowY = -1;
+                } else {
+                    // Above
+                    connectorCoords.y1 = this.boundingRectangleCoords.y1;
+                    connectorCoords.y2 = connectedObjBoundingRectangle.y2;
+                    controlPointFactors.y = controlPointFactor;
+                    arrowAngle = 360 * Math.PI / 180;
+                    connectorCoords.arrowY = 1;
+                }
+                if (Math.abs(connectorCoords.y2 - connectorCoords.y1) < minimumDistance) {
+                    minimumDistance = Math.abs(connectorCoords.y2 - connectorCoords.y1);
                 }
             }
+            
+            if (connectorCoords.arrowX !== 0) {
+                connectorCoords.deltaX = connectorCoords.x2 - connectorCoords.x1;
+                connectorCoords.deltaY = connectorCoords.centralY2 - connectorCoords.centralY1;
+                arrowAngle += angleAdjustmentFactor * Math.atan(connectorCoords.deltaY / connectorCoords.deltaX);
+            }
+            if (connectorCoords.arrowY !== 0) {
+                connectorCoords.deltaX = connectorCoords.centralX2 - connectorCoords.centralX1;
+                connectorCoords.deltaY = connectorCoords.y2 - connectorCoords.y1;
+                arrowAngle -= angleAdjustmentFactor * Math.atan(connectorCoords.deltaX / connectorCoords.deltaY);
+            }
+            
+            connectorCoords.cp1x = connectorCoords.x1 + (controlPointFactors.x * connectorCoords.deltaX);
+            connectorCoords.cp2x = connectorCoords.x2 - (controlPointFactors.x * connectorCoords.deltaX);
+            connectorCoords.cp1y = connectorCoords.y1 + (controlPointFactors.y * connectorCoords.deltaY);
+            connectorCoords.cp2y = connectorCoords.y2 - (controlPointFactors.y * connectorCoords.deltaY);
+        
             context.save();
             context.lineWidth = 1;
             context.beginPath();
             context.moveTo(connectorCoords.x1, connectorCoords.y1);
-            context.quadraticCurveTo(
-                1.02 * (connectorCoords.x1 + ((connectorCoords.x2 - connectorCoords.x1) / 2)),
-                1.02 * (connectorCoords.y1 + ((connectorCoords.y2 - connectorCoords.y1) / 2)),
+    
+            context.bezierCurveTo(
+                connectorCoords.cp1x, connectorCoords.cp1y,
+                connectorCoords.cp2x, connectorCoords.cp2y,
                 connectorCoords.x2,
                 connectorCoords.y2);
             context.stroke();
             context.closePath();
             context.restore();
+            
+            if (minimumDistance < arrowHeadLength) {
+                arrowHeadLength = minimumDistance / 2;
+            }
 
-            let arrowAngle = Math.atan((connectorCoords.y2 - connectorCoords.y1) / (connectorCoords.x2 - connectorCoords.x1));
-            arrowAngle += ((connectorCoords.x2 > connectorCoords.x1) ? 90 : -90) * Math.PI / 180;
             dxHelpers.drawArrowhead(context, connectorCoords.x2, connectorCoords.y2, arrowAngle, arrowHeadLength);
         }
     }
@@ -1774,8 +1849,8 @@ const dxHelpers = {
         context.translate(x, y);
         context.rotate(radians);
         context.moveTo(0, 0);
-        context.lineTo(10, arrowLength);
-        context.lineTo(-10, arrowLength);
+        context.lineTo(arrowLength / 3, arrowLength);
+        context.lineTo(-(arrowLength / 3), arrowLength);
         context.closePath();
         context.restore();
         context.fill();
