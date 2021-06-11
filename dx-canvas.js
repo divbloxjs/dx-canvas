@@ -1885,6 +1885,20 @@ const dxCanvasAutoPopulate = {
     preparedUids: [],
     totalWidth: 0,
     totalHeight: 0,
+
+    /**
+     * Initiates all the placeholder variables that will be used to return the prepared data. This ensures no overlap
+     * when the object is used multiple times in a single location
+     */
+    initData() {
+        this.configuration = {};
+        this.objectParents = {};
+        this.dataToPrepare = [];
+        this.preparedData = [];
+        this.preparedUids = [];
+        this.totalWidth = 0;
+        this.totalHeight = 0;
+    },
     
     /**
      * Takes the input data (An example of which is located in the example_3 folder and prepares the data to be returned
@@ -1893,6 +1907,8 @@ const dxCanvasAutoPopulate = {
      * @return {[]} An object that is ready to be passed to the DivbloxCanvas constructor
      */
     prepareCanvasAutoPopulate(inputData = {}) {
+        this.initData();
+        
         if (typeof inputData["configuration"] === "undefined") {
             throw new Error("No preparation configuration provided");
         }
