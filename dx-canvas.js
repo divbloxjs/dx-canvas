@@ -1968,12 +1968,12 @@ const dxCanvasAutoPopulate = {
                 {
                     x: this.totalWidth,
                     y: verticalMiddle});
-            if (preparedObjectResult === null) {
-                continue;
+            const isProcessed = preparedObjectResult === null;
+            if (!isProcessed) {
+                this.preparedData.push(preparedObjectResult.preparedObject);
+                this.totalWidth += preparedObjectResult.width;
             }
-            this.preparedData.push(preparedObjectResult.preparedObject);
-            this.totalWidth += preparedObjectResult.width;
-        
+            
             const childObjects = this.getObjectChildren(object);
             if (childObjects.length > 0) {
                 if (typeof this.configuration["horizontalSpace"] !== "undefined") {
@@ -1999,7 +1999,6 @@ const dxCanvasAutoPopulate = {
                         }
                     }
                     
-                    
                     currentY = childObjects.length === 1 ? verticalMiddle : currentY;
                     
                     currentYPositionTop = !currentYPositionTop;
@@ -2020,7 +2019,7 @@ const dxCanvasAutoPopulate = {
                 this.totalWidth += maxChildWidth;
             }
         
-            if (typeof this.configuration["horizontalSpace"] !== "undefined") {
+            if ((typeof this.configuration["horizontalSpace"] !== "undefined") && (!isProcessed)) {
                 this.totalWidth += this.configuration["horizontalSpace"];
             }
         }
