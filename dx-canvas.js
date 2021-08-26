@@ -10,6 +10,11 @@
 
 //#region The core DivbloxCanvas functionality
 /**
+ * Global definitions to be specified here.
+ * @type {*[]}
+ */
+window.dxCanvasRegisteredEventHandlers = [];
+/**
  * DivbloxCanvas manages the drawing and updating of a canvas along with user inputs
  */
 class DivbloxCanvas {
@@ -33,7 +38,6 @@ class DivbloxCanvas {
     constructor(elementId = "dxCanvas", objects = [], options = {}) {
         this.canvas = document.getElementById(elementId);
         this.context = null;
-        this.registeredEventHandlers = [];
         this.objectList = {};
         this.objectOrderedArray = [];
         this.objectUidMap = {};
@@ -107,9 +111,9 @@ class DivbloxCanvas {
      * @param {function} handler The function that handles the event
      */
     addCanvasEventListener(event, handler) {
-        if (!this.registeredEventHandlers.includes(event)) {
+        if (!window.dxCanvasRegisteredEventHandlers.includes(event)) {
             this.canvas.addEventListener(event, handler, false);
-            this.registeredEventHandlers.push(event);
+            window.dxCanvasRegisteredEventHandlers.push(event);
         }
     }
 
