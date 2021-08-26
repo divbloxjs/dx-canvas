@@ -77,7 +77,25 @@ class DivbloxCanvas {
         this.canvas.height = this.canvas.parentElement.clientHeight;
         this.canvas.width = this.canvas.parentElement.clientWidth;
 
-        this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this), false);
+        this.eventHandlers = {
+            'mousemove': this.onMouseMove.bind(this),
+            'mouseenter': this.onMouseEnter.bind(this),
+            'mouseleave': this.onMouseLeave.bind(this),
+            'mouseover': this.onMouseOver.bind(this),
+            'mouseout': this.onMouseOut.bind(this),
+            'mousedown': this.onMouseDown.bind(this),
+            'mouseup': this.onMouseUp.bind(this),
+            'click': this.onMouseClick.bind(this),
+            'dblclick': this.onMouseDoubleClick.bind(this),
+            'contextmenu': this.onMouseRightClick.bind(this),
+            'wheel': this.onMouseScroll.bind(this)
+        }.bind(this);
+
+        for (const event of Object.keys(this.eventHandlers)) {
+            this.canvas.removeEventListener(event, this.eventHandlers[event], false);
+            this.canvas.addEventListener(event, this.eventHandlers[event], false);
+        }
+        /*this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this), false);
         this.canvas.addEventListener('mouseenter', this.onMouseEnter.bind(this), false);
         this.canvas.addEventListener('mouseleave', this.onMouseLeave.bind(this), false);
         this.canvas.addEventListener('mouseover', this.onMouseOver.bind(this), false);
@@ -87,7 +105,7 @@ class DivbloxCanvas {
         this.canvas.addEventListener('click', this.onMouseClick.bind(this), false);
         this.canvas.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
         this.canvas.addEventListener('contextmenu', this.onMouseRightClick.bind(this), false);
-        this.canvas.addEventListener('wheel', this.onMouseScroll.bind(this), false);
+        this.canvas.addEventListener('wheel', this.onMouseScroll.bind(this), false);*/
         for (const object of objects) {
             this.registerObject(this.initObjectFromJson(object));
         }
