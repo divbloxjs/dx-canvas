@@ -33,6 +33,7 @@ class DivbloxCanvas {
     constructor(elementId = "dxCanvas", objects = [], options = {}) {
         this.canvas = document.getElementById(elementId);
         this.context = null;
+        this.registeredEventHandlers = [];
         this.objectList = {};
         this.objectOrderedArray = [];
         this.objectUidMap = {};
@@ -78,38 +79,38 @@ class DivbloxCanvas {
         this.canvas.width = this.canvas.parentElement.clientWidth;
 
         this.eventHandlers = {
-            'mousemove': this.onMouseMove.bind(this),
-            'mouseenter': this.onMouseEnter.bind(this),
-            'mouseleave': this.onMouseLeave.bind(this),
-            'mouseover': this.onMouseOver.bind(this),
-            'mouseout': this.onMouseOut.bind(this),
-            'mousedown': this.onMouseDown.bind(this),
-            'mouseup': this.onMouseUp.bind(this),
-            'click': this.onMouseClick.bind(this),
-            'dblclick': this.onMouseDoubleClick.bind(this),
-            'contextmenu': this.onMouseRightClick.bind(this),
-            'wheel': this.onMouseScroll.bind(this)
-        }.bind(this);
-
+            'mousemove': this.onMouseMove,
+            'mouseenter': this.onMouseEnter,
+            'mouseleave': this.onMouseLeave,
+            'mouseover': this.onMouseOver,
+            'mouseout': this.onMouseOut,
+            'mousedown': this.onMouseDown,
+            'mouseup': this.onMouseUp,
+            'click': this.onMouseClick,
+            'dblclick': this.onMouseDoubleClick,
+            'contextmenu': this.onMouseRightClick,
+            'wheel': this.onMouseScroll
+        };
         for (const event of Object.keys(this.eventHandlers)) {
-            this.canvas.removeEventListener(event, this.eventHandlers[event], false);
-            this.canvas.addEventListener(event, this.eventHandlers[event], false);
+            this.addCanvasEventListener(event,this.eventHandlers[event].bind(this));
         }
-        /*this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this), false);
-        this.canvas.addEventListener('mouseenter', this.onMouseEnter.bind(this), false);
-        this.canvas.addEventListener('mouseleave', this.onMouseLeave.bind(this), false);
-        this.canvas.addEventListener('mouseover', this.onMouseOver.bind(this), false);
-        this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this), false);
-        this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this), false);
-        this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this), false);
-        this.canvas.addEventListener('click', this.onMouseClick.bind(this), false);
-        this.canvas.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
-        this.canvas.addEventListener('contextmenu', this.onMouseRightClick.bind(this), false);
-        this.canvas.addEventListener('wheel', this.onMouseScroll.bind(this), false);*/
         for (const object of objects) {
             this.registerObject(this.initObjectFromJson(object));
         }
         window.requestAnimationFrame(this.update.bind(this));
+    }
+
+    /**
+     * Registers an event handler for the canvas, but checks whether it already exists before attempting. This prevents
+     * duplicate listeners and events from being handled when initializing multiple canvases on the same html element
+     * @param {string} event The name of the event
+     * @param {function} handler The function that handles the event
+     */
+    addCanvasEventListener(event, handler) {
+        if (!this.registeredEventHandlers.includes(event)) {
+            this.canvas.addEventListener(event, handler, false);
+            this.registeredEventHandlers.push(event);
+        }
     }
 
     /**
