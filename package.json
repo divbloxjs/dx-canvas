@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JohanGriesel/dx-canvas.git"
+    "url": "git+https://github.com/divbloxjs/dx-canvas.git"
   },
   "keywords": [
     "Divblox",
@@ -20,7 +20,7 @@
   "author": "Johan Griesel, johan@stratusolve.com (Stratusolve (Pty)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/JohanGriesel/dx-canvas/issues"
+    "url": "https://github.com/divbloxjs/dx-canvas/issues"
   },
-  "homepage": "https://github.com/JohanGriesel/dx-canvas#readme"
+  "homepage": "https://github.com/divbloxjs/dx-canvas#readme"
 }
