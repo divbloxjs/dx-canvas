@@ -16,7 +16,7 @@ straight forward to add new object types for your specific requirements.
 
 Install: 
 ````
- npm install --save https://github.com/divbloxjs/dx-canvas
+ npm install --save github:divbloxjs/dx-canvas
 ````
 Usage:
 ````
