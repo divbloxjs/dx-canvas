@@ -41,6 +41,7 @@ class DivbloxCanvas {
         this.objectList = {};
         this.objectOrderedArray = [];
         this.objectUidMap = {};
+        this.previousActiveObject = null;
         this.activeObject = null;
         this.isMouseDown = false;
         this.dragStart = {x: 0, y: 0};
@@ -70,6 +71,10 @@ class DivbloxCanvas {
         this.isDebugModeActive = false;
         if (typeof options["isDebugModeActive"] !== "undefined") {
             this.isDebugModeActive = options["isDebugModeActive"];
+        }
+        this.isEditable = false;
+        if (typeof options["isEditable"] !== "undefined") {
+            this.isEditable = options["isEditable"];
         }
 
         this.mustFitToScreen = false;
@@ -130,7 +135,7 @@ class DivbloxCanvas {
             throw new Error("No object type provided");
         }
         let objectToReturn = null;
-        const canvasId = Object.keys(this.objectList).length;
+        const canvasId = this.getNewCanvasId();
         switch (json["type"]) {
             //TODO: When new object types are defined, implement their instantiation in a child class that overrides
             // this method. This child method should pass false to mustHandleError and deal with it
@@ -158,6 +163,12 @@ class DivbloxCanvas {
                     y: json.y
                 }, json["additionalOptions"], json["data"], canvasId);
                 break;
+            case 'DivbloxBaseTemporaryCircleCanvasObject':
+                objectToReturn = new DivbloxBaseTemporaryCircleCanvasObject(this, {
+                    x: json.x,
+                    y: json.y
+                }, json["additionalOptions"], json["data"], canvasId);
+                break;
             default:
                 if (mustHandleError === true) {
                     console.error("Invalid object type '" + json["type"] + "' provided");
@@ -179,6 +190,28 @@ class DivbloxCanvas {
     }
 
     /**
+     * This function will return a object from below the cursor based on happening events
+     * @param event
+     * @returns {null|*}
+     */
+    getObjectByCoordinates(event) {
+        let mouseCoordinates = this.getMousePosition(event);
+        const reversedOrderArray = [...this.objectOrderedArray].reverse();
+        for (const objectId of reversedOrderArray) {
+            const object = this.objectList[objectId];
+            if (object.temporaryCanvasObject) continue;
+            if ((object.getBoundingRectangle().x1 <= mouseCoordinates.cx) &&
+                (object.getBoundingRectangle().x2 >= mouseCoordinates.cx) &&
+                (object.getBoundingRectangle().y1 <= mouseCoordinates.cy) &&
+                (object.getBoundingRectangle().y2 >= mouseCoordinates.cy)) {
+                return object;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Returns an instance of an implementation of DivbloxBaseCanvasObject for the given unique id
      * @param uid The unique id to search on
      * @return {null|*}
@@ -188,6 +221,42 @@ class DivbloxCanvas {
             return null;
         }
         return this.getObjectByCanvasId(this.objectUidMap[uid]);
+    }
+
+    /**
+     * This function is meant to toggle hover states for objects the pointer enters and leaves
+     * @param mouseCoordinates
+     * @returns {null|*}
+     */
+    toggleHoverState(mouseCoordinates) {
+        let topHoveredObj = null;
+        let allInHoverState = [];
+        for (const objectId of this.objectOrderedArray) {
+            const object = this.objectList[objectId];
+            if ((object.getBoundingRectangle().x1 <= mouseCoordinates.cx) &&
+                (object.getBoundingRectangle().x2 >= mouseCoordinates.cx) &&
+                (object.getBoundingRectangle().y1 <= mouseCoordinates.cy) &&
+                (object.getBoundingRectangle().y2 >= mouseCoordinates.cy) &&
+                topHoveredObj === null) {
+                topHoveredObj = object;
+                continue;
+            }
+            if (object.inHoverState) {
+                allInHoverState.push(object);
+            }
+        }
+
+        if (topHoveredObj !== null && !topHoveredObj.inHoverState) {
+            topHoveredObj.onMouseEnter(this);
+        }
+
+        for (const hoveredObject of allInHoverState) {
+            if (topHoveredObj !== null && hoveredObject.uid === topHoveredObj.uid) {
+                continue;
+            }
+
+            hoveredObject.onMouseLeave(this);
+        }
     }
 
     /**
@@ -278,11 +347,79 @@ class DivbloxCanvas {
         if (object === null) {
             return;
         }
+
         this.objectList[object.getId()] = object;
         this.objectUidMap[object.getUid()] = object.getId();
         const activeObjectIndex = this.objectOrderedArray.indexOf(object.getId().toString());
         if (activeObjectIndex === -1) {
             this.objectOrderedArray.push(object.getId().toString());
+        }
+    }
+
+    /**
+     * Removes the relevant object from dx canvas object variables and, as a result, from the canvas
+     * @param object
+     */
+    deleteObject(object = null) {
+        if (object === null) {
+            return;
+        }
+
+        if (this.objectList.hasOwnProperty(object.getId())) {
+            delete this.objectList[object.getId()];
+        }
+
+        if (this.objectUidMap.hasOwnProperty(object.getUid())) {
+            delete this.objectUidMap[object.getUid()];
+        }
+
+        const activeObjectIndex = this.objectOrderedArray.indexOf(object.getId().toString());
+        if (activeObjectIndex !== -1) {
+            this.objectOrderedArray.splice(activeObjectIndex,1);
+        }
+    }
+
+    /**
+     * This function will remove all links to a given object from other objects
+     * @param object
+     */
+    removeLinksToObject(object = null) {
+        if (object === null) {
+            return;
+        }
+
+        let objectCount = Object.keys(this.objectList).length;
+        let keys = Object.keys(this.objectList);
+        for (const key of keys) {
+            let connections = this.objectList[key].additionalOptions.connections ?? [];
+            let index = connections.indexOf(object.uid);
+
+            if (index >= 0) {
+                connections.splice(index, 1);
+            }
+        }
+    }
+
+    removeTemporaryObjects() {
+        const reversedOrderArray = [...this.objectOrderedArray].reverse();
+        for (const objectId of reversedOrderArray) {
+            const object = this.objectList[objectId];
+            if (object.uid.includes("temp_")) {
+                this.removeLinksToObject(object);
+
+                const activeObjectIndex = this.objectOrderedArray.indexOf(object.getId().toString());
+                if (activeObjectIndex !== -1) {
+                    this.objectOrderedArray.splice(activeObjectIndex,1);
+                }
+
+                if (this.objectUidMap.hasOwnProperty(object.getUid())) {
+                    delete this.objectUidMap[object.getUid()];
+                }
+
+                if (this.objectList.hasOwnProperty(object.getId())) {
+                    delete this.objectList[object.getId()];
+                }
+            }
         }
     }
 
@@ -330,6 +467,8 @@ class DivbloxCanvas {
             this.dragEnd.y = mouse.cy;
             this.updateDrag();
         }
+
+        this.toggleHoverState(mouse);
     }
 
     /**
@@ -393,8 +532,9 @@ class DivbloxCanvas {
         if (!this.isDragging) {
             // This was a click
             this.setActiveObject({x: mouse.cx, y: mouse.cy}, true);
-        } else {
-            this.setActiveObject({x: -1, y: -1});
+        } else if (this.activeObject !== null) {
+            this.activeObject.drawRelatedTemporaryObjects(this);
+            this.activeObject.objectDropped(event, this);
         }
         this.isDragging = false;
     }
@@ -430,7 +570,6 @@ class DivbloxCanvas {
         if (this.isDebugModeActive === true) {
             console.log("Mouse right clicked at: " + JSON.stringify(mouse));
         }
-        this.resetCanvas();
     }
 
     /**
@@ -450,6 +589,9 @@ class DivbloxCanvas {
      * @param mustTriggerClick If true, then we trigger the onClick function of the relevant object
      */
     setActiveObject(mouseDownPosition = {x: 0, y: 0}, mustTriggerClick = false) {
+        if (this.activeObject !== null) {
+            this.previousActiveObject = this.activeObject;
+        }
         this.activeObject = null;
         const reversedOrderArray = [...this.objectOrderedArray].reverse();
         for (const objectId of reversedOrderArray) {
@@ -461,6 +603,8 @@ class DivbloxCanvas {
                 this.activeObject = object;
                 if (mustTriggerClick === true) {
                     this.activeObject.onClick();
+                } else if (this.activeObject.temporaryCanvasObject) {
+                    this.activeObject.onClick(this);
                 }
                 const activeObjIndex = this.objectOrderedArray.indexOf(objectId.toString());
                 if (activeObjIndex !== (this.objectOrderedArray.length - 1)) {
@@ -469,6 +613,23 @@ class DivbloxCanvas {
                 }
                 break;
             }
+        }
+
+        if (this.previousActiveObject === null) return;
+
+        if (this.activeObject !== null && !this.activeObject.temporaryCanvasObject) {
+            setTimeout(function() {
+                this.activeObject.drawRelatedTemporaryObjects(this);
+            }.bind(this), 30);
+        }
+
+        if ((this.activeObject === null || this.activeObject.uid !== this.previousActiveObject.uid) && !this.previousActiveObject.temporaryCanvasObject) {
+            this.previousActiveObject.removeRelatedTemporaryObjects(this);
+        }
+
+        if (this.activeObject !== null && this.activeObject.uid === this.previousActiveObject.uid) {
+            this.previousActiveObject.removeRelatedTemporaryObjects(this);
+            this.previousActiveObject.drawRelatedTemporaryObjects(this);
         }
     }
 
@@ -483,6 +644,7 @@ class DivbloxCanvas {
             const translateY = this.dragTranslateFactor * (this.dragEnd.y - this.dragStart.y);
             this.context.translate(translateX, translateY);
         } else {
+            this.activeObject.removeRelatedTemporaryObjects(this);
             if (this.activeObject.isDraggable) {
                 if (!this.isDragging) {
                     this.activeObject.updateDeltas({x: this.dragStart.x, y: this.dragStart.y});
@@ -621,6 +783,7 @@ class DivbloxCanvas {
      * @returns {string} The JSON string
      */
     getCanvasJson(mustPrettify = true) {
+
         let exportArray = [];
         for (const objectId of Object.keys(this.objectList)) {
             const object = this.objectList[objectId];
@@ -641,6 +804,15 @@ class DivbloxCanvas {
         downloadLink.href = linkSource;
         downloadLink.download = fileName;
         downloadLink.click();
+    }
+
+    getNewCanvasId() {
+        let canvasId = Object.keys(this.objectList).length;
+        while (this.objectList[canvasId]) {
+            canvasId++;
+        }
+
+        return canvasId;
     }
 }
 
@@ -667,6 +839,7 @@ class DivbloxBaseCanvasObject {
      * @param objectData Optional. An object containing data relevant to the object. This data is not necessarily used
      * on the canvas, but is available to the developer when needed
      * @param {number} canvasId Optional. The id that will be used to detect this object on the canvas
+     * @param temporaryCanvasObject
      */
     constructor(dxCanvas = null,
                 drawStartCoords = {x: 0, y: 0},
@@ -678,7 +851,8 @@ class DivbloxBaseCanvasObject {
                             {width: 100, height: 100}
                     },
                 objectData = {},
-                canvasId = -1) {
+                canvasId = -1,
+                temporaryCanvasObject = false) {
         if (dxCanvas === null) {
             throw new Error("DivbloxCanvas not provided to DivbloxBaseCanvasObject")
         }
@@ -707,6 +881,9 @@ class DivbloxBaseCanvasObject {
         this.notificationBubbleRadius = 0;
         this.notificationBubbleColour = '#FF0000';
         this.notificationBubbleCoords = {x: this.x, y: this.y};
+        this.temporaryCanvasObject = temporaryCanvasObject;
+        this.inHoverState = false;
+        this.temporaryObjectControllersDrawn = false;
         this.initializeObject();
     }
 
@@ -932,7 +1109,6 @@ class DivbloxBaseCanvasObject {
             if (minimumDistance < arrowHeadLength) {
                 arrowHeadLength = minimumDistance / 2;
             }
-
             dxHelpers.drawArrowhead(context, connectorCoords.x2, connectorCoords.y2, arrowAngle, arrowHeadLength);
         }
     }
@@ -994,6 +1170,121 @@ class DivbloxBaseCanvasObject {
     }
 
     /**
+     * This function will manage the drawing of all temporary objects linked to a non-temporary object
+     * @param dxCanvasObj
+     */
+    drawRelatedTemporaryObjects(dxCanvasObj) {
+        if (this.temporaryObjectControllersDrawn || this.temporaryCanvasObject || !dxCanvasObj.isEditable) {
+            return;
+        }
+        
+        this.drawTempArrowHeads(dxCanvasObj);
+        this.drawTempObjectControllers(dxCanvasObj);
+
+        window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
+        this.temporaryObjectControllersDrawn = true;
+    }
+
+    removeRelatedTemporaryObjects(dxCanvasObj) {
+        if (!this.temporaryObjectControllersDrawn || !dxCanvasObj.isEditable) return;
+
+        const reversedOrderArray = [...dxCanvasObj.objectOrderedArray].reverse();
+        for (const objectId of reversedOrderArray) {
+            const object = dxCanvasObj.objectList[objectId];
+            if (
+                object.additionalOptions.hasOwnProperty("linkFrom") &&
+                object.additionalOptions.linkFrom == this.getUid() &&
+                (object.additionalOptions.uid.includes("temp_arrowmaker") ||
+                    object.additionalOptions.uid.includes("temp_delete"))
+            ) {
+                dxCanvasObj.deleteObject(object);
+            }
+        }
+
+        window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
+        this.temporaryObjectControllersDrawn = false;
+    }
+    
+    /**
+     * This function draws the arrow heads around a non-temporary canvas object that has been hovered
+     * @param dxCanvasObj
+     */
+    drawTempArrowHeads(dxCanvasObj) {
+        const currentObjectCoords = this.getBoundingRectangle();
+        const arrowCoordinates = [
+            {
+                x: (currentObjectCoords.x2 - currentObjectCoords.x1) / 2 + currentObjectCoords.x1,
+                y: currentObjectCoords.y2 + 10
+            },
+            {
+                x: (currentObjectCoords.x2 - currentObjectCoords.x1) / 2 + currentObjectCoords.x1,
+                y: currentObjectCoords.y1 - 10
+            },
+            {
+                x: currentObjectCoords.x1 - 10,
+                y: (currentObjectCoords.y2 - currentObjectCoords.y1) / 2 + currentObjectCoords.y1
+            },
+            {
+                x: currentObjectCoords.x2 + 10,
+                y: (currentObjectCoords.y2 - currentObjectCoords.y1) / 2 + currentObjectCoords.y1
+            },
+        ];
+        const arrowPosition = ["down", "up", "left", "right"];
+
+        for (let i = 0; i < arrowPosition.length; i++) {
+            const newObject = {
+                "type": "DivbloxBaseTemporaryCircleCanvasObject",
+                "x": arrowCoordinates[i].x,
+                "y": arrowCoordinates[i].y,
+                "additionalOptions": {
+                    "drawShadow": false,
+                    "uid": "temp_arrowmaker_"+arrowPosition[i],
+                    "isDraggable": false,
+                    "fillColour": 'rgba(0,0,0,0)',
+                    "dimensions": {
+                        "radius": 10
+                    },
+                    "image": "assets/images/chevron-arrow-" + arrowPosition[i] + ".png",
+                    "linkFrom": this.getUid()
+                },
+                "data": {}
+            }
+
+            dxCanvasObj.registerObject(dxCanvasObj.initObjectFromJson(newObject));
+        }
+    }
+
+
+    /**
+     * This function will draw temporary object controllers around the selected canvas object
+     * These object will allow to modify features of the non-temporary object
+     * @param dxCanvasObj
+     */
+    drawTempObjectControllers (dxCanvasObj) {
+        const currentObjectCoords = this.getBoundingRectangle();
+
+        const newObject = {
+            "type": "DivbloxBaseTemporaryCircleCanvasObject",
+            "x": currentObjectCoords.x1,
+            "y": currentObjectCoords.y1,
+            "additionalOptions": {
+                "drawShadow": false,
+                "uid": "temp_delete",
+                "isDraggable": false,
+                "fillColour": 'rgba(0,0,0,0)',
+                "dimensions": {
+                    "radius": 15
+                },
+                "image": "assets/images/delete.png",
+                "linkFrom": this.getUid()
+            },
+            "data": {}
+        }
+
+        dxCanvasObj.registerObject(dxCanvasObj.initObjectFromJson(newObject));
+    }
+
+    /**
      * This functions handles the on click event for this object. This should be implemented in a child class
      */
     onClick() {
@@ -1009,6 +1300,32 @@ class DivbloxBaseCanvasObject {
         if (this.dxCanvas.isDebugModeActive === true) {
             console.log("Object " + this.getId() + " double clicked");
         }
+    }
+
+    /**
+     * This function handles the on mouse enter for this object. This should be implemented in a child class
+     */
+    onMouseEnter(dxCanvasObj) {
+        if (this.dxCanvas.isDebugModeActive === true) {
+            console.log("Object " + this.getId() + " mouse entered");
+        }
+    }
+
+    /**
+     * This function handles the on mouse leave for this object. This should be implemented in a child class
+     */
+    onMouseLeave(dxCanvasObj) {
+        if (this.dxCanvas.isDebugModeActive === true) {
+            console.log("Object " + this.getId() + " mouse left");
+        }
+    }
+
+    /**
+     * This is a function that will be called when an object is dropped after being dragged
+     * @param dxCanvasObj
+     */
+    objectDropped(event, dxCanvasObj) {
+        // this function function is to be overwritten in child classes
     }
 
     /**
@@ -1102,9 +1419,9 @@ class DivbloxBaseCanvasObject {
 /**
  * The DivbloxBaseCircleCanvasObject is basically a circle that is filled with a specified colour, has an optional image
  * in its center and also has an optional notification indicator at its top right
- *   [x]
+ *  [x]
  * / x \
- * \_/
+ *  \_/
  *
  */
 class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
@@ -1357,6 +1674,276 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
             context.fillText(this.additionalOptions["text"], textCoords.x, textCoords.y);
             context.restore();
         }
+    }
+}
+
+/**
+ * The DivbloxBaseTemporaryCircleCanvasObject is mainly used to control the behaviour
+ * of arrows and allow them to bedynamically linked to other objects
+ */
+class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
+    constructor(dxCanvas = null,
+                drawStartCoords = {x: 0, y: 0},
+                additionalOptions =
+                    {
+                        isDraggable: true,
+                        fillColour: "#b1caf2",
+                        dimensions:
+                            {radius: 2}
+                    },
+                objectData = {},
+                canvasId = -1,
+                temporaryCanvasObject = true) {
+        super(dxCanvas, drawStartCoords, additionalOptions, objectData, canvasId, temporaryCanvasObject);
+    }
+
+    initializeObject() {
+        this.imageObj = null;
+        this.radius = 10;
+        if (typeof this.additionalOptions["dimensions"] !== "undefined") {
+            if (typeof this.additionalOptions["dimensions"]["radius"] !== "undefined") {
+                this.radius = this.additionalOptions["dimensions"]["radius"];
+            }
+        }
+        super.initializeObject();
+    }
+
+    /**
+     * Updates the bounding coordinates for the object based on the circle's radius
+     */
+    updateBoundingCoords() {
+        this.boundingRectangleCoords =
+            {
+                x1: this.x - this.radius,
+                y1: this.y - this.radius,
+                x2: this.x + this.radius,
+                y2: this.y + this.radius
+            };
+    }
+
+    /**
+     * Draws the circle on the canvas
+     * @param context The context object of our canvas
+     */
+    drawObjectComponents(context = null) {
+        if (context === null) {
+            throw new Error("No context provided for object");
+        }
+        // Start drawing the main object
+        context.save();
+        if (this.additionalOptions.drawShadow) {
+            this.drawShadow(context);
+        }
+
+        context.beginPath();
+        context.moveTo(this.x, this.y);
+        context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, true);
+        context.fillStyle = this.fillColour;
+        context.fill();
+        context.restore();
+
+        // Let's add the provided image (if any) to the center of the circle
+        if (typeof this.additionalOptions["image"] !== "undefined") {
+            const width = this.boundingRectangleCoords.x2 - this.boundingRectangleCoords.x1;
+            const height = this.boundingRectangleCoords.y2 - this.boundingRectangleCoords.y1;
+            const imgCoords = {
+                x: this.boundingRectangleCoords.x1 + width / 4,
+                y: this.boundingRectangleCoords.y1 + height / 4
+            }
+            if (this.imageObj === null) {
+                this.imageObj = new Image();
+                if (this.additionalOptions["image"].indexOf("http") !== -1) {
+                    this.imageObj.src = getAssetsPath('../') + this.additionalOptions["image"];
+                } else {
+                    this.imageObj.src = this.dxCanvas.getDxCanvasRoot() + this.additionalOptions["image"];
+                    this.imageObj.setAttribute('crossorigin', 'anonymous');
+                }
+            } else {
+                context.save();
+                context.drawImage(this.imageObj, imgCoords.x, imgCoords.y, width / 2, height / 2);
+                context.restore();
+            }
+        }
+    }
+
+    /**
+     * This functions handles the on click event for this object. This should be implemented in a child class
+     */
+    onClick(dxCanvasObj) {
+        switch (true) {
+            case this.uid.includes('temp_arrow'):
+                this.tempArrowClickEventHandler(dxCanvasObj);
+                break;
+            case this.uid.includes('temp_delete'):
+                this.tempDeleteClickEventHandler(dxCanvasObj);
+                break;
+        }
+
+    }
+
+    /**
+     * This function is called when a link creator arrow is clicked
+     * It will create a temporary object linkin arrow with a temporary navigator object
+     * @param dxCanvasObj
+     */
+    tempArrowClickEventHandler(dxCanvasObj) {
+        let distanceFromParentObj = 50;
+
+        const currentObjectCoords = this.getBoundingRectangle();
+
+        let navigatorObjectCoords = {
+            x: (currentObjectCoords.x2 - currentObjectCoords.x1)/2 + currentObjectCoords.x1,
+            y: (currentObjectCoords.y2 - currentObjectCoords.y1)/2 + currentObjectCoords.y1
+        }
+
+        switch (true) {
+            case this.uid.includes("up"):
+                navigatorObjectCoords.y = navigatorObjectCoords.y - distanceFromParentObj;
+                break;
+            case this.uid.includes("down"):
+                navigatorObjectCoords.y = navigatorObjectCoords.y + distanceFromParentObj;
+                break;
+            case this.uid.includes("left"):
+                navigatorObjectCoords.x = navigatorObjectCoords.x - distanceFromParentObj;
+                break;
+            case this.uid.includes("right"):
+                navigatorObjectCoords.x = navigatorObjectCoords.x + distanceFromParentObj;
+                break;
+        }
+
+        let canvasId = dxCanvasObj.getNewCanvasId();
+
+        const newObject = {
+            "type": "DivbloxBaseTemporaryCircleCanvasObject",
+            "x": navigatorObjectCoords.x,
+            "y": navigatorObjectCoords.y,
+            "additionalOptions": {
+                "drawShadow": false,
+                "uid": "temp_link_navigator_" + canvasId,
+                "isDraggable": true,
+                "fillColour": 'rgba(0,0,0,0)',
+                "dimensions": {
+                    "radius": 6
+                },
+                "linkFrom": this.additionalOptions.linkFrom
+            },
+            "data": {}
+        }
+
+        let parentCanvasObj = dxCanvasObj.getObjectByUid(this.additionalOptions.linkFrom);
+
+        if (!parentCanvasObj.additionalOptions.hasOwnProperty("connections")) {
+            parentCanvasObj.additionalOptions.connections = [];
+        }
+
+        parentCanvasObj.additionalOptions.connections.push(newObject.additionalOptions.uid);
+
+        dxCanvasObj.registerObject(dxCanvasObj.initObjectFromJson(newObject));
+        window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
+    }
+    
+    tempDeleteClickEventHandler(dxCanvasObj) {
+        let text = "Are you sure you want to delete this object and all related connections?";
+        if (confirm(text) == false) {
+            return;
+        }
+
+        this.removeRelatedTemporaryObjects(dxCanvasObj);
+
+        if (!this.additionalOptions.hasOwnProperty("linkFrom")) {
+            return
+        }
+
+        let parentObject = dxCanvasObj.getObjectByUid(this.additionalOptions.linkFrom);
+
+        if (parentObject === null) {
+            return;
+        }
+
+        setTimeout(function() {
+            dxCanvasObj.removeLinksToObject(parentObject);
+            dxCanvasObj.deleteObject(parentObject);
+
+            window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
+        }.bind(this), 20);
+    }
+
+    /**
+     * This function will add link creator arrows around the current object
+     * These link creators can be clicked to create object linking arrows
+     * @param dxCanvasObj
+     */
+    drawTempArrowHeads(dxCanvasObj) {
+        switch (true) {
+            case this.uid.includes('temp_link_navigator'):
+                return;
+            default:
+                super.drawTempArrowHeads(dxCanvasObj)
+                break;
+        }
+    }
+
+    /**
+     * This function handles the on mouse enter for this object
+     */
+    onMouseEnter(dxCanvasObj) {
+        this.inHoverState = true;
+        switch (true) {
+            case this.uid.includes('temp_link_navigator'):
+                this.fillColour = "rgb(0, 0, 0, 0.5)";
+                window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
+                break;
+        }
+
+        if (this.dxCanvas.isDebugModeActive === true) {
+            console.log("Object " + this.getId() + " mouse entered");
+        }
+    }
+
+    /**
+     * This function handles the on mouse leave for this object
+     */
+    onMouseLeave(dxCanvasObj) {
+        this.inHoverState = false;
+
+        switch (true) {
+            case this.uid.includes('temp_link_navigator'):
+                this.fillColour = "rgb(0, 0, 0, 0)";
+                window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
+                break;
+        }
+
+        if (this.dxCanvas.isDebugModeActive === true) {
+            console.log("Object " + this.getId() + " mouse left");
+        };
+    }
+
+    /**
+     * This is a function that will be called when an object is dropped after being dragged
+     * @param dxCanvasObj
+     */
+    objectDropped(event, dxCanvasObj) {
+        switch (true) {
+            case this.uid.includes('temp_link_navigator'):
+                this.onNavigatorDroppedEventHandler(event, dxCanvasObj)
+                break;
+        }
+    }
+
+
+    onNavigatorDroppedEventHandler(event, dxCanvasObj) {
+        let droppedOnObject = dxCanvasObj.getObjectByCoordinates(event);
+        if (droppedOnObject === null) return;
+
+        let parentCanvasObject = dxCanvasObj.getObjectByUid(this.additionalOptions.linkFrom);
+        if (!parentCanvasObject) return;
+
+        parentCanvasObject.additionalOptions.connections.push(droppedOnObject.uid);
+        let parentConnectionsIndex = parentCanvasObject.additionalOptions.connections.indexOf(this.uid);
+        parentCanvasObject.additionalOptions.connections.splice(parentConnectionsIndex, 1);
+
+        dxCanvasObj.deleteObject(this);
+        window.requestAnimationFrame(dxCanvasObj.update.bind(dxCanvasObj));
     }
 }
 
@@ -2105,7 +2692,6 @@ const dxCanvasAutoPopulate = {
             // This is not a circle object
             objectWidth = preparedObject.additionalOptions["dimensions"]["width"];
         }
-//        console.log("Positioning new object: "+JSON.stringify(preparedObject,null,2));
         return {"preparedObject":preparedObject,"width":objectWidth};
     },
     
