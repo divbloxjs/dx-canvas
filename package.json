@@ -1,52 +1,26 @@
 {
-  "_from": "github:divbloxjs/dx-canvas",
-  "_id": "dx-canvas@1.0.0",
-  "_inBundle": false,
-  "_integrity": "",
-  "_location": "/dx-canvas",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "git",
-    "raw": "github:divbloxjs/dx-canvas",
-    "rawSpec": "github:divbloxjs/dx-canvas",
-    "saveSpec": "github:divbloxjs/dx-canvas",
-    "fetchSpec": null,
-    "gitCommittish": null
-  },
-  "_requiredBy": [
-    "#USER",
-    "/"
-  ],
-  "_resolved": "github:divbloxjs/dx-canvas#c4a179a8232e349aee81a3b6b36a035f2fdaabc0",
-  "_spec": "github:divbloxjs/dx-canvas",
-  "_where": "/home/john-louis/Repositories/Ideco-Project/project/assets/js/node_modules",
-  "author": {
-    "name": "Johan Griesel, johan@divblox.com - Divblox",
-    "url": "Pty"
-  },
-  "bugs": {
-    "url": "https://github.com/divbloxjs/dx-canvas/issues"
-  },
-  "bundleDependencies": false,
-  "deprecated": false,
+  "name": "dx-canvas",
+  "version": "1.0.0",
   "description": "A canvas library used by various Divblox tools like the Divblox Data Modeler",
+  "main": "dx-canvas.js",
   "directories": {
     "test": "examples"
-  },
-  "homepage": "https://github.com/divbloxjs/dx-canvas#readme",
-  "keywords": [
-    "Divblox",
-    "canvas"
-  ],
-  "license": "MIT",
-  "main": "dx-canvas.js",
-  "name": "dx-canvas",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/divbloxjs/dx-canvas.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divbloxjs/dx-canvas.git"
+  },
+  "keywords": [
+    "Divblox",
+    "canvas"
+  ],
+  "author": "Johan Griesel, johan@divblox.com - Divblox (Pty) Ltd",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/divbloxjs/dx-canvas/issues"
+  },
+  "homepage": "https://github.com/divbloxjs/dx-canvas#readme"
 }
