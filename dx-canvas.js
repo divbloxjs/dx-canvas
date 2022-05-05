@@ -111,10 +111,10 @@ class DivbloxCanvas {
     }
 
     /**
-     * Registers an event handler for the canvas, but checks whether it already exists before attempting. This prevents
-     * duplicate listeners and events from being handled when initializing multiple canvases on the same html element
+     * Registers an event handler for the canvas
      * @param {string} event The name of the event
      * @param {function} handler The function that handles the event
+     * @summary This function checks whether it already exists before attempting. This prevents duplicate listeners and events from being handled when initializing multiple canvases on the same html element
      */
     addCanvasEventListener(event, handler) {
         if (!window.dxCanvasRegisteredEventHandlers.includes(event)) {
@@ -125,11 +125,11 @@ class DivbloxCanvas {
 
     /**
      * Instantiates a new object to be rendered on the canvas, based on the json provided
-     * @param json The object to initialize
-     * @param mustHandleError If this is false, no error will be presented in the console if the object type
+     * @param {{x: number, y: number, type: string, additionalOptions: object}} json The object to initialize
+     * @param {boolean} mustHandleError If this is false, no error will be presented in the console if the object type
      * does not exist. This is useful for when you override this function in a child class to prevent unnecessary
      * console errors
-     * @return {null} An instance of the newly instantiated object or null
+     * @return {null | DivbloxBaseCanvasObject} An instance of the newly instantiated DivbloxBaseCanvasObject object or null if the object was not created
      */
     initObjectFromJson(json = {}, mustHandleError = true) {
         if (typeof json["type"] === "undefined") {
@@ -180,10 +180,11 @@ class DivbloxCanvas {
 
     /**
      * Returns an instance of an implementation of DivbloxBaseCanvasObject for the given canvas id
-     * @param canvasId The canvas id to search on
-     * @return {null|*}
+     * @param {string} canvasId The canvas id to search on
+     * @return {null| DivbloxBaseCanvasObject} Returns an instance of the DivbloxBaseCanvasObject or one of
+     * its base children classes. null is returned if no object with this id was found
      */
-    getObjectByCanvasId(canvasId = -1) {
+    getObjectByCanvasId(canvasId = "-1") {
         if (typeof this.objectList[canvasId] === "undefined") {
             return null;
         }
@@ -191,16 +192,17 @@ class DivbloxCanvas {
     }
 
     /**
-     * This function will return an object from below the cursor based on happening events
+     * Returns an object from below the cursor based on happening events
      * @param {MouseEvent} event object that contains information from a mouse event
-     * @returns {null | DivbloxBaseCanvasObject | DivbloxBaseHtmlCanvasObject | DivbloxBaseRectangleCanvasObject | DivbloxBaseCircleCanvasObject | DivbloxBaseTemporaryCircleCanvasObject} this is an instance of the DivbloxBaseCanvasObject or one of its base children classes
+     * @returns {null | DivbloxBaseCanvasObject} Returns an instance of the DivbloxBaseCanvasObject or one of
+     * its base children classes. null is returned when the cursor is not hovering over any non-temporary canvas object
      */
     getObjectByCoordinates(event) {
         let mouseCoordinates = this.getMousePosition(event);
         const reversedOrderArray = [...this.objectOrderedArray].reverse();
         for (const objectId of reversedOrderArray) {
             const object = this.objectList[objectId];
-            if (object.temporaryCanvasObject) continue;
+            if (object.isTemporaryCanvasObject) continue;
             if ((object.getBoundingRectangle().x1 <= mouseCoordinates.cx) &&
                 (object.getBoundingRectangle().x2 >= mouseCoordinates.cx) &&
                 (object.getBoundingRectangle().y1 <= mouseCoordinates.cy) &&
@@ -225,8 +227,10 @@ class DivbloxCanvas {
     }
 
     /**
-     * This function is meant to toggle hover states for objects the pointer enters and leaves
+     * Toggles hover states for objects the pointer enters and leaves
      * @param {{x: number, y: number, cx: number, cy: number}} mouseCoordinates these are the coordinates of the mouse relative to the canvas
+     * @summary This function is currently used to adjust the visuals of the temporary navigator objects to
+     * change the background color
      */
     toggleHoverState(mouseCoordinates) {
         let topHoveredObj = null;
@@ -341,7 +345,7 @@ class DivbloxCanvas {
 
     /**
      * Adds the relevant object to the objects array
-     * @param {DivbloxBaseCanvasObject | DivbloxBaseHtmlCanvasObject | DivbloxBaseRectangleCanvasObject | DivbloxBaseCircleCanvasObject | DivbloxBaseTemporaryCircleCanvasObject} object - this is an instance of the DivbloxBaseCanvasObject or one of its base children classes
+     * @param {DivbloxBaseCanvasObject} object - This is an instance of the DivbloxBaseCanvasObject or one of its base children classes
      */
     registerObject(object = null) {
         if (object === null) {
@@ -358,7 +362,7 @@ class DivbloxCanvas {
 
     /**
      * Removes the relevant object from dx canvas object variables and, as a result, from the canvas
-     * @param {DivbloxBaseCanvasObject | DivbloxBaseHtmlCanvasObject | DivbloxBaseRectangleCanvasObject | DivbloxBaseCircleCanvasObject | DivbloxBaseTemporaryCircleCanvasObject} object - this is an instance of the DivbloxBaseCanvasObject or one of its base children classes
+     * @param {DivbloxBaseCanvasObject} object - This is an instance of the DivbloxBaseCanvasObject or one of its base children classes
      */
     deleteObject(object = null) {
         if (object === null) {
@@ -380,8 +384,8 @@ class DivbloxCanvas {
     }
 
     /**
-     * Here we loop through all objects on the canvas to make sure there are no references left in the connections attribute to the object of interest
-     * @param {DivbloxBaseCanvasObject | DivbloxBaseHtmlCanvasObject | DivbloxBaseRectangleCanvasObject | DivbloxBaseCircleCanvasObject | DivbloxBaseTemporaryCircleCanvasObject} object - this is an instance of the DivbloxBaseCanvasObject or one of its base children classes
+     * Loops through all objects on the canvas to make sure there are no references left in the connections attribute to the object of interest
+     * @param {DivbloxBaseCanvasObject} object - This is an instance of the DivbloxBaseCanvasObject or one of its base children classes
      * @summary This function gets called when an object from the divblox canvas gets deleted
      */
     removeLinksToObject(object = null) {
@@ -402,8 +406,8 @@ class DivbloxCanvas {
     }
 
     /**
-     * This function is very useful in cases when one would like to export a JSON of the canvas data but not include the temporary objects that do not contain useful information
-     * @summary This is not actively used by the base implementation of the dx-canvas library
+     * This function exports a JSON of the canvas data
+     * @summary This is not actively used by the base implementation of the dx-canvas library and does not include the temporary objects that do not contain useful information (like arrows that are not connected)
      */
     removeTemporaryObjects() {
         const reversedOrderArray = [...this.objectOrderedArray].reverse();
@@ -596,8 +600,8 @@ class DivbloxCanvas {
 
     /**
      * Uses the current mouse position to determine the object to set as active
-     * @param mouseDownPosition The position of the mouse where we want to check for an object
-     * @param mustTriggerClick If true, then we trigger the onClick function of the relevant object
+     * @param {{x: number, y:number}} mouseDownPosition The position of the mouse where we want to check for an object
+     * @param {boolean} mustTriggerClick If true, then we trigger the onClick function of the relevant object
      */
     setActiveObject(mouseDownPosition = {x: 0, y: 0}, mustTriggerClick = false) {
         if (this.activeObject !== null) {
@@ -614,7 +618,7 @@ class DivbloxCanvas {
                 this.activeObject = object;
                 if (mustTriggerClick === true) {
                     this.activeObject.onClick();
-                } else if (this.activeObject.temporaryCanvasObject) {
+                } else if (this.activeObject.isTemporaryCanvasObject) {
                     this.activeObject.onClick(this);
                 }
                 const activeObjIndex = this.objectOrderedArray.indexOf(objectId.toString());
@@ -628,13 +632,13 @@ class DivbloxCanvas {
 
         if (this.previousActiveObject === null) return;
 
-        if (this.activeObject !== null && !this.activeObject.temporaryCanvasObject) {
+        if (this.activeObject !== null && !this.activeObject.isTemporaryCanvasObject) {
             setTimeout(function() {
                 this.activeObject.drawRelatedTemporaryObjects(this);
             }.bind(this), 30);
         }
 
-        if ((this.activeObject === null || this.activeObject.uid !== this.previousActiveObject.uid) && !this.previousActiveObject.temporaryCanvasObject) {
+        if ((this.activeObject === null || this.activeObject.uid !== this.previousActiveObject.uid) && !this.previousActiveObject.isTemporaryCanvasObject) {
             this.previousActiveObject.removeRelatedTemporaryObjects(this);
         }
 
@@ -645,8 +649,8 @@ class DivbloxCanvas {
     }
 
     /**
-     * If an object is active, this method attempts to drag just that object on the canvas, otherwise it calculates
-     * applies the correct transform while dragging the entire canvas
+     * This function drags just the active object on the canvas
+     * @summary If an object is active, this method attempts to drag just that object on the canvas, otherwise it calculates applies the correct transform while dragging the entire canvas
      */
     updateDrag() {
         const tx = this.context.getTransform();
@@ -818,10 +822,9 @@ class DivbloxCanvas {
     }
 
     /**
-     * This function is used to generate a uuid for an object that is to be added to the canvas
-     * The generation technique was taken from https://www.cryptosys.net/pki/uuid-rfc4122.html which makes it compliant
-     * with RFC 4122
-     * @return {string}
+     * This function generates an uuid for an object that is to be added to the canvas
+     * @return {string} - This is the generated uuid for an object. Example: AA97B177-9383-4934-8543-0F91A7A02836
+     * @summary The generation technique was taken from https://www.cryptosys.net/pki/uuid-rfc4122.html which makes it compliant with RFC 4122
      */
     getNewCanvasId() {
         const genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -854,17 +857,17 @@ class DivbloxBaseCanvasObject {
      * Initializes the relevant data for the object
      * @param {*} dxCanvas The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} drawStartCoords The x and y coordinates where this object is drawn from
-     * @param additionalOptions Options specific to this object and how it is drawn and handled on the canvas
+     * @param {*} additionalOptions Options specific to this object and how it is drawn and handled on the canvas
      * @param {string} additionalOptions.uid An optional, user-specified unique identifier for this object. Used to
      * link objects to each other
      * @param {boolean} additionalOptions.isDraggable If true, this object is draggable on the canvas
      * @param {string} additionalOptions.fillColour A HEX value representing the fill colour for the object
      * @param {{width:number, height:number}} additionalOptions.dimensions {} An object containing the width and
      * height of this canvas object
-     * @param objectData Optional. An object containing data relevant to the object. This data is not necessarily used
+     * @param {*} objectData Optional. An object containing data relevant to the object. This data is not necessarily used
      * on the canvas, but is available to the developer when needed
      * @param {string} canvasId Optional. The id that will be used to detect this object on the canvas
-     * @param {boolean} temporaryCanvasObject
+     * @param {boolean} isTemporaryCanvasObject Specifies if the object is part of the temporary object functionality
      */
     constructor(dxCanvas = null,
                 drawStartCoords = {x: 0, y: 0},
@@ -877,7 +880,7 @@ class DivbloxBaseCanvasObject {
                     },
                 objectData = {},
                 canvasId = "-1",
-                temporaryCanvasObject = false) {
+                isTemporaryCanvasObject = false) {
         if (dxCanvas === null) {
             throw new Error("DivbloxCanvas not provided to DivbloxBaseCanvasObject")
         }
@@ -906,7 +909,7 @@ class DivbloxBaseCanvasObject {
         this.notificationBubbleRadius = 0;
         this.notificationBubbleColour = '#FF0000';
         this.notificationBubbleCoords = {x: this.x, y: this.y};
-        this.temporaryCanvasObject = temporaryCanvasObject;
+        this.isTemporaryCanvasObject = isTemporaryCanvasObject;
         this.inHoverState = false;
         this.temporaryObjectControllersDrawn = false;
         this.initializeObject();
@@ -1199,7 +1202,7 @@ class DivbloxBaseCanvasObject {
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
      */
     drawRelatedTemporaryObjects(dxCanvasObj) {
-        if (this.temporaryObjectControllersDrawn || this.temporaryCanvasObject || !dxCanvasObj.isEditable) {
+        if (this.temporaryObjectControllersDrawn || this.isTemporaryCanvasObject || !dxCanvasObj.isEditable) {
             return;
         }
         
@@ -1211,9 +1214,10 @@ class DivbloxBaseCanvasObject {
     }
 
     /**
-     * We use the DivbloxCanvas instance to search through all the temporary objects rendered on the canvas and that have a parameter "linkFrom" matching the current objects uid. If found, they are removed using the DivbloxCanvas deleteObject function.
-     * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This function will remove all temporary objects linked to the current object.
+     * This function will remove all temporary objects linked to the current object.
+     * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole
+     * canvas needs to be updated after changes
+     * @summary We use the DivbloxCanvas instance to search through all the temporary objects rendered on the canvas and that have a parameter "linkFrom" matching the current objects uid. If found, they are removed using the DivbloxCanvas deleteObject function.
      */
     removeRelatedTemporaryObjects(dxCanvasObj) {
         if (!this.temporaryObjectControllersDrawn || !dxCanvasObj.isEditable) return;
@@ -1286,8 +1290,9 @@ class DivbloxBaseCanvasObject {
 
 
     /**
-     * This function will draw temporary object controllers around the selected canvas object. These object will allow modifying features of the non-temporary object. Currently, we only add the delete controller that allows you to delete the object from the canvas.
+     * This function will draw temporary object controllers around the selected canvas object.
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
+     * @summary  These object will allow modifying features of the non-temporary object. Currently, we only add the delete controller that allows you to delete the object from the canvas.
      */
     drawTempObjectControllers (dxCanvasObj) {
         const currentObjectCoords = this.getBoundingRectangle();
@@ -1352,7 +1357,7 @@ class DivbloxBaseCanvasObject {
     }
 
     /**
-     * This is a function that will be called when an object is dropped after being dragged. This should be implemented in a child class
+     * This function handles the event when an object is dropped after being dragged. This should be implemented in a child class
      * @param {MouseEvent} event - this object passed from javascript from end through the DivbloxCanvas class object
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
      */
@@ -1463,7 +1468,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant data for the object
      * @param {*} dxCanvas The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} drawStartCoords The x and y coordinates where this object is drawn from
-     * @param additionalOptions Options specific to this object and how it is drawn and handled on the canvas
+     * @param {*} additionalOptions Options specific to this object and how it is drawn and handled on the canvas
      * @param {string} additionalOptions.uid An optional, user-specified unique identifier for this object. Used to
      * link objects to each other
      * @param {boolean} additionalOptions.isDraggable If true, this object is draggable on the canvas
@@ -1475,7 +1480,7 @@ class DivbloxBaseCircleCanvasObject extends DivbloxBaseCanvasObject {
      * bubble at the top right of the circle
      * @param {string} additionalOptions.notificationBubbleColour A HEX value representing the fill colour for
      * the notification bubble
-     * @param objectData Optional. An object containing data relevant to the object. This data is not necessarily used
+     * @param {*} objectData Optional. An object containing data relevant to the object. This data is not necessarily used
      * on the canvas, but is available to the developer when needed
      * @param {string} canvasId Optional. The id that will be used to detect this object on the canvas
      */
@@ -1588,7 +1593,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant data for the object
      * @param {*} dxCanvas The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} drawStartCoords The x and y coordinates where this object is drawn from
-     * @param additionalOptions Options specific to this object and how it is drawn and handled on the canvas
+     * @param {*} additionalOptions Options specific to this object and how it is drawn and handled on the canvas
      * @param {string} additionalOptions.uid An optional, user-specified unique identifier for this object. Used to
      * link objects to each other
      * @param {boolean} additionalOptions.isDraggable If true, this object is draggable on the canvas
@@ -1605,7 +1610,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
      * bubble at the top right of the rectangle
      * @param {string} additionalOptions.notificationBubbleColour A HEX value representing the fill colour for
      * the notification bubble
-     * @param objectData Optional. An object containing data relevant to the object. This data is not necessarily used
+     * @param {*} objectData Optional. An object containing data relevant to the object. This data is not necessarily used
      * on the canvas, but is available to the developer when needed
      * @param {string} canvasId Optional. The id that will be used to detect this object on the canvas
      */
@@ -1719,7 +1724,7 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant data for the object
      * @param {DivbloxCanvas} dxCanvas The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} drawStartCoords The x and y coordinates where this object is drawn from
-     * @param additionalOptions Options specific to this object and how it is drawn and handled on the canvas
+     * @param {*} additionalOptions Options specific to this object and how it is drawn and handled on the canvas
      * @param {string} additionalOptions.uid An optional, user-specified unique identifier for this object. Used to link objects to each other
      * @param {boolean} additionalOptions.isDraggable If true, this object is draggable on the canvas
      * @param {string} additionalOptions.fillColour A HEX value representing the fill colour for the object
@@ -1729,9 +1734,9 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
      * @param {string} additionalOptions.image {} Optional. The path to the image that should be displayed in the center of the rectangle
      * @param {number} additionalOptions.notificationCount {} Optional. A number to display in a notification bubble at the top right of the rectangle
      * @param {string} additionalOptions.notificationBubbleColour A HEX value representing the fill colour for the notification bubble
-     * @param objectData Optional. An object containing data relevant to the object. This data is not necessarily used on the canvas, but is available to the developer when needed
+     * @param {*} objectData Optional. An object containing data relevant to the object. This data is not necessarily used on the canvas, but is available to the developer when needed
      * @param {string} canvasId Optional. The id that will be used to detect this object on the canvas
-     * @param {boolean} temporaryCanvasObject
+     * @param {boolean} isTemporaryCanvasObject
      */
     constructor(dxCanvas = null,
                 drawStartCoords = {x: 0, y: 0},
@@ -1744,8 +1749,8 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
                     },
                 objectData = {},
                 canvasId = -1,
-                temporaryCanvasObject = true) {
-        super(dxCanvas, drawStartCoords, additionalOptions, objectData, canvasId, temporaryCanvasObject);
+                isTemporaryCanvasObject = true) {
+        super(dxCanvas, drawStartCoords, additionalOptions, objectData, canvasId, isTemporaryCanvasObject);
     }
 
     /**
@@ -1821,9 +1826,9 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * We have introduced different types of temporary objects into the system, this function essentially makes sure the correct processing is applied to the different types of temporary objects.
+     * This functions handles the on click event for this object.
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This functions handles the on click event for this object
+     * @summary We have introduced different types of temporary objects into the system, this function essentially makes sure the correct processing is applied to the different types of temporary objects.
      * */
     onClick(dxCanvasObj) {
         switch (true) {
@@ -1838,9 +1843,9 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * Firstly we need to decide where we will place the temporary navigator object. Currently, it is hardcoded to place 50px in the direction of the arrow clicked. It will create a temporary navigator object and link the non-temporary object of interest to this navigator temporary object - so we have a dynamic link.
+     * This function adds an arrow to the canvas that can be used to link objects to each other.
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This function is called when a link creator arrow is clicked
+     * @summary Firstly we need to decide where we will place the temporary navigator object. Currently, it is hardcoded to place 50px in the direction of the arrow clicked. It will create a temporary navigator object and link the non-temporary object of interest to this navigator temporary object - so we have a dynamic link.
      */
     tempArrowClickEventHandler(dxCanvasObj) {
         let distanceFromParentObj = 50;
@@ -1899,9 +1904,9 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * When we want to delete an object from the canvas, we need remove all the temporary objects linked to it (see the removeRelatedTemporaryObjects function). After that we need to clear connection to the current object in objects that are not being removed. Only after this can we go through the process of removing the object from the DivbloxCanvas object (see DivbloxCanvas::deleteObject)
+     * This function handles the delete click event by removing the object from the canvas
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This function is called when a temporary delete object is clicked.
+     * @summary When we want to delete an object from the canvas, we need remove all the temporary objects linked to it (see the removeRelatedTemporaryObjects function). After that we need to clear connection to the current object in objects that are not being removed. Only after this can we go through the process of removing the object from the DivbloxCanvas object (see DivbloxCanvas::deleteObject)
      */
     tempDeleteClickEventHandler(dxCanvasObj) {
         let text = "Are you sure you want to delete this object and all related connections?";
@@ -1927,9 +1932,9 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * This function will add link creator arrows around the current object. These link creators can be clicked to create object linking arrows.
+     * This function adds link creator arrows around the current object.
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This function is called when a non-temporary object is set to active
+     * @summary This function is called when a non-temporary object is set to active. The displayed link creators can be clicked to create object linking arrows.
      */
     drawTempArrowHeads(dxCanvasObj) {
         switch (true) {
@@ -1942,12 +1947,14 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * Currently we only observe hovering events for the navigator temporary objects on the canvas and react accordingly. This means the object needs to have "temp_link_navigator" as part of the uid to be effected.
+     * This function handles the on mouse enter for this object.
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This function handles the on mouse enter for this object
+     * @summary Currently we only observe hovering events for the navigator temporary objects on the canvas and react accordingly. This means the object needs to have "temp_link_navigator" as part of the uid to be effected.
      */
     onMouseEnter(dxCanvasObj) {
         this.inHoverState = true;
+
+        // This switch could be easily expanded to accommodate for mouse enter for other types of temporary objects
         switch (true) {
             case this.uid.includes('temp_link_navigator'):
                 this.fillColour = "rgb(0, 0, 0, 0.5)";
@@ -1961,13 +1968,14 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * Currently this function is only used to alter the background of the temporary navigator objects but is a good basis for other uses when hovering is the trigger
+     * This function handles the on mouse leave for this object.
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class. It is passed as the whole canvas needs to be updated after changes
-     * @summary This function handles the on mouse leave for this object
+     * @summary Currently this function is only used to alter the background of the temporary navigator objects but is a good basis for other uses when hovering is the trigger
      */
     onMouseLeave(dxCanvasObj) {
         this.inHoverState = false;
 
+        // This switch could be easily expanded to accommodate for mouse leave for other types of temporary objects
         switch (true) {
             case this.uid.includes('temp_link_navigator'):
                 this.fillColour = "rgb(0, 0, 0, 0)";
@@ -1981,10 +1989,10 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * Currently this function is only used in the case where a navigator temporary object is dropped on a non-temporary object. This function will not execute any functionality if the object's uid does not contain "temp_link_navigator"
+     * This function handles the dropping of a temporary object.
      * @param {MouseEvent} event this object passed from javascript from end through the DivbloxCanvas class object
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class
-     * @summary This is a function that will be called when an object is dropped after being dragged
+     * @summary Currently this function is only used in the case where a navigator temporary object is dropped on a non-temporary object. This function will not execute any functionality if the object's uid does not contain "temp_link_navigator"
      */
     objectDropped(event, dxCanvasObj) {
         switch (true) {
@@ -1995,9 +2003,10 @@ class DivbloxBaseTemporaryCircleCanvasObject extends DivbloxBaseCanvasObject {
     }
 
     /**
-     * This function is triggered when the navigator of a temporary link is dropped. If it is dropped on a non-temporary object, a link will be created between the parent object, indicated by the "linkFrom" attribute in the navigator, and the object on which the navigator was dropped on.
+     * This function handles the event when the navigator of a temporary link is dropped.
      * @param {MouseEvent} event this object passed from javascript from end through the DivbloxCanvas class object
      * @param {DivbloxCanvas} dxCanvasObj this is an instance on the DivbloxCanvas class
+     * @summary  If the navigator of a temporary link is dropped on a non-temporary object, a link will be created between the parent object, indicated by the "linkFrom" attribute in the navigator, and the object on which the navigator was dropped on.
      */
     onNavigatorDroppedEventHandler(event, dxCanvasObj) {
         let droppedOnObject = dxCanvasObj.getObjectByCoordinates(event);
@@ -2026,7 +2035,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      * Initializes the relevant data for the object
      * @param {*} dxCanvas The instance of the DivbloxCanvas object that controls the canvas
      * @param {{x: number, y: number}} drawStartCoords The x and y coordinates where this object is drawn from
-     * @param additionalOptions Options specific to this object and how it is drawn and handled on the canvas
+     * @param {*} additionalOptions Options specific to this object and how it is drawn and handled on the canvas
      * @param {string} additionalOptions.uid An optional, user-specified unique identifier for this object. Used to
      * link objects to each other
      * @param {boolean} additionalOptions.isDraggable If true, this object is draggable on the canvas
@@ -2051,7 +2060,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
      * expanded from the start
      * @param {boolean} additionalOptions.preventCollapse Optional. If set to true, the object will not have a
      * collapse toggle and cannot be collapsed
-     * @param objectData Optional. An object containing data relevant to the object. This data is not necessarily used
+     * @param {*} objectData Optional. An object containing data relevant to the object. This data is not necessarily used
      * on the canvas, but is available to the developer when needed
      * @param {number} canvasId Optional. The id that will be used to detect this object on the canvas
      */
@@ -2377,7 +2386,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
 
     /**
      * Draws the icon that indicates whether the component is expanded or collapsed
-     * @param {CanvasRenderingContext2D} context
+     * @param {CanvasRenderingContext2D} context The context object of our canvas
      */
     drawExpandToggleIcon(context = null) {
         if (this.preventCollapse === true) {
@@ -2518,10 +2527,10 @@ const dxHelpers = {
     /**
      * Draws an arrowhead on a canvas
      * @param {CanvasRenderingContext2D} context
-     * @param x The x coordinate of the arrow's tip
-     * @param y The y coordinate of the arrow's tip
-     * @param radians The angle of the arrowhead in radians
-     * @param arrowLength The length of the arrowhead
+     * @param {number} x The x coordinate of the arrow's tip
+     * @param {number} y The y coordinate of the arrow's tip
+     * @param {number} radians The angle of the arrowhead in radians
+     * @param {number} arrowLength The length of the arrowhead
      */
     drawArrowhead(context, x, y, radians, arrowLength = 25) {
         context.save();
@@ -2622,7 +2631,7 @@ const dxCanvasAutoPopulate = {
     /**
      * Processes a specified route that is to be mapped onto the canvas, meaning all of the objects defined, as well as
      * their children, are mapped with auto-generated x & y coordinates
-     * @param routeObject
+     * @param {*} routeObject
      */
     prepareCanvasRoute(routeObject = {}) {
         let verticalMiddle = 0;
@@ -2707,9 +2716,9 @@ const dxCanvasAutoPopulate = {
     
     /**
      * Prepares a single object for the DivbloxCanvas with x & y coordinates
-     * @param object
-     * @param configuration
-     * @param coords
+     * @param {*} object
+     * @param {*} configuration
+     * @param {{x: number, y:number}} coords
      * @return {null|{preparedObject: {additionalOptions, data: {}, x: number, y: number, type: string}, width: number}}
      */
     getPreparedObject(object = {}, configuration = {}, coords = {x:0,y:0}) {
@@ -2767,7 +2776,7 @@ const dxCanvasAutoPopulate = {
     
     /**
      * Returns all the children of a given object. These will be connections on the DivbloxCanvas
-     * @param object
+     * @param {*} object
      * @return {*[]}
      */
     getObjectChildren(object = {}) {
