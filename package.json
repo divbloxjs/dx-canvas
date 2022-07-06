@@ -1,26 +1,26 @@
 {
-  "name": "dx-canvas",
-  "version": "1.0.0",
-  "description": "A canvas library used by various Divblox tools like the Divblox Data Modeler",
-  "main": "dx-canvas.js",
-  "directories": {
-    "test": "examples"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/divbloxjs/dx-canvas.git"
-  },
-  "keywords": [
-    "Divblox",
-    "canvas"
-  ],
-  "author": "Johan Griesel, johan@divblox.com - Divblox (Pty) Ltd",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/divbloxjs/dx-canvas/issues"
-  },
-  "homepage": "https://github.com/divbloxjs/dx-canvas#readme"
+    "name": "dx-canvas",
+    "version": "1.0.1",
+    "description": "A canvas library used by various Divblox tools like the Divblox Data Modeler",
+    "main": "dx-canvas.js",
+    "directories": {
+        "test": "examples"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/divbloxjs/dx-canvas.git"
+    },
+    "keywords": [
+        "Divblox",
+        "canvas"
+    ],
+    "author": "Johan Griesel, johan@divblox.com - Divblox (Pty) Ltd",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/divbloxjs/dx-canvas/issues"
+    },
+    "homepage": "https://github.com/divbloxjs/dx-canvas#readme"
 }
