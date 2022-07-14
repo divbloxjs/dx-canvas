@@ -352,7 +352,7 @@ class DivbloxCanvas {
             return;
         }
 
-        this.objectList[object.getId()] = object;
+        this.objectList[object.getId().toString()] = object;
         this.objectUidMap[object.getUid()] = object.getId();
         const activeObjectIndex = this.objectOrderedArray.indexOf(object.getId().toString());
         if (activeObjectIndex === -1) {
@@ -369,7 +369,7 @@ class DivbloxCanvas {
             return;
         }
 
-        if (this.objectList.hasOwnProperty(object.getId())) {
+        if (this.objectList.hasOwnProperty(object.getId().toString())) {
             delete this.objectList[object.getId()];
         }
 
@@ -393,7 +393,6 @@ class DivbloxCanvas {
             return;
         }
 
-        let objectCount = Object.keys(this.objectList).length;
         let keys = Object.keys(this.objectList);
         for (const key of keys) {
             let connections = this.objectList[key].additionalOptions.connections ?? [];
@@ -425,7 +424,7 @@ class DivbloxCanvas {
                     delete this.objectUidMap[object.getUid()];
                 }
 
-                if (this.objectList.hasOwnProperty(object.getId())) {
+                if (this.objectList.hasOwnProperty(object.getId().toString())) {
                     delete this.objectList[object.getId()];
                 }
             }
@@ -472,7 +471,7 @@ class DivbloxCanvas {
         this.validateEvent(event);
         const mouse = this.getMousePosition(event);
 
-        if (this.activeObject !== null && !Object.keys(this.objectList).includes(this.activeObject.canvasId)) { // this will trigger after an object has been deleted from the canvas
+        if (this.activeObject !== null && !Object.keys(this.objectList).includes(this.activeObject.canvasId.toString())) { // this will trigger after an object has been deleted from the canvas
             this.setActiveObject();
             this.isMouseDown = false;
         }
@@ -607,6 +606,7 @@ class DivbloxCanvas {
         if (this.activeObject !== null) {
             this.previousActiveObject = this.activeObject;
         }
+
         this.activeObject = null;
         const reversedOrderArray = [...this.objectOrderedArray].reverse();
         for (const objectId of reversedOrderArray) {
@@ -700,7 +700,6 @@ class DivbloxCanvas {
      */
     zoomToFitCustom(boundaries = {}) {
         this.resetCanvas();
-        const canvasRect = this.canvas.getBoundingClientRect();
         const zoomPadding = {left: 5, top: 5, right: 5, bottom:15};
         const zoomPaddingTotals = {
             x: zoomPadding.left + zoomPadding.right,
@@ -1694,8 +1693,7 @@ class DivbloxBaseRectangleCanvasObject extends DivbloxBaseCanvasObject {
 
         // Let's add the provided text (if any) to the center of the rectangle
         if (typeof this.additionalOptions["text"] !== "undefined") {
-            const maxFontSize = this.height / 4;
-            let fontSize = maxFontSize;
+            let fontSize = this.height / 4;
             context.font = "small-caps bold " + fontSize + "px " + this.dxCanvas.baseFontFamily;
             let textWidth = Math.ceil(context.measureText(this.additionalOptions["text"]).width);
             while (textWidth > (this.width * 0.8)) {
@@ -2363,8 +2361,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         // Let's add the provided text (if any) to the center of the rectangle
         if (typeof this.additionalOptions["text"] !== "undefined") {
             context.save();
-            const maxFontSize = this.height / 4;
-            let fontSize = maxFontSize;
+            let fontSize = this.height / 4;
             context.font = "small-caps bold " + fontSize + "px " + this.dxCanvas.baseFontFamily;
             let textWidth = Math.ceil(context.measureText(this.additionalOptions["text"]).width);
             while (textWidth > (this.width * 0.8)) {

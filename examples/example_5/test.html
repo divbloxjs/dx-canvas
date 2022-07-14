@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+    <!-- Sweat Alert Library -->
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        #dxCanvasWrapper {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100%;
+            height: 100%;
+            /*border:1px solid black;*/
+        }
+
+        #dxCanvasWrapper > canvas {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100%;
+            height: 100%;
+            /*border:1px solid red;*/
+        }
+    </style>
+    <title>Dx Canvas - Example</title>
+</head>
+<body onload="pageSetup()">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-0">Divblox Canvas - Example</h1>
+            <small class="text-muted">This page simiulates how Divblox Canvas can fit into an existing html
+                page</small>
+        </div>
+
+        <div class="col-1 mt-0">
+            <div class="row" id="data_model_workflow_workflow_builder_1_workflowEventBar"
+                 style="overflow-y: auto; height: 85vh;">
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="2" data-caption="Delivery"
+                                 src="./images/Delivery_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="3" data-caption="Manual Inspection"
+                                 src="./images/Manual_Inspection.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="4" data-caption="Automatic Inspection"
+                                 src="./images/Automatic_Inspection.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="5" data-caption="Conversion"
+                                 src="./images/Conversion_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="6" data-caption="Collection"
+                                 src="./images/Collection_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="7" data-caption="Dispatch"
+                                 src="./images/Dispatch_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="8" data-caption="Rejection"
+                                 src="./images/Rejection_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="9" data-caption="Receiving"
+                                 src="./images/Receiving_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="10" data-caption="Movement"
+                                 src="./images/Movement_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+                <div class="col-6 mt-0 offset-3 text-center canvas-component">
+                    <div class="row">
+                        <div class="col-12 mt-0 p-1">
+                            <img id="11" data-caption="Waypoint"
+                                 src="./images/Waypoint_Event.png"
+                                 style="width: 100%">
+                        </div>
+                    </div>
+                    <div class="col-3 mt-0"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9 p-0 m-0">
+            <div id="dxCanvasWrapper">
+                <canvas id="dxCanvas">Please upgrade your browser to view this content</canvas>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <h5>Example Functions</h5>
+            <div class="d-grid gap-2 col-12 mx-auto">
+                <button class="btn btn-primary" type="button" onclick="saveCanvas();">Save Canvas</button>
+                <button id="btnExportCanvas" class="btn btn-primary" type="button">Export Canvas (.png)</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../../dx-canvas.js"></script>
+<script src="./custom-implementation.js"></script>
+<script>
+    const scriptStartIndexInt = window.location.href.indexOf("test.html");
+    const rootStr = window.location.href.substr(0, scriptStartIndexInt);
+    let dxCanvas = null;
+
+    var canvasDataObjArr = [];
+    var circleTemplate = {
+        "type": "CustomCircleObject",
+        "additionalOptions": {
+            "isDraggable": true,
+            "fillColour": "#ececf1",
+            "dimensions": {
+                "radius": 50
+            },
+            "notificationCount": 0,
+            "notificationBubbleColour": "#FF0000",
+            "connections": []
+        },
+        "data": {}
+    };
+
+    initCanvas();
+
+    async function initCanvas() {
+        const response = await fetch(rootStr + 'test-model.json');
+        const dataJson = await response.json();
+        dxCanvas = new MyCustomCanvas(
+            'dxCanvas',
+            dataJson,
+            {
+                dxCanvasRoot: "../../",
+                backgroundColor: "#E8F3EF",
+                baseFontFamily: "Comic Sans MS",
+                isEditable: true,
+                isDebugModeActive: false
+                //connectionsCurveType: "straight"
+            });
+        const downloadBtn = document.getElementById('btnExportCanvas');
+        downloadBtn.addEventListener('click', function () {
+            dxCanvas.downloadCanvasPng();
+        }, false);
+    }
+
+    function saveCanvas() {
+        if (dxCanvas === null) {
+            console.log("Is null");
+        }
+        console.log(dxCanvas.getCanvasJson(false));
+
+        Swal.fire({
+            title: "Success",
+            text: "Canvas JSON printed in the browser console",
+            icon: 'success'
+        });
+    }
+
+    function pageSetup() {
+        addDomEventHandlersAfterLoad();
+    }
+
+    function addDomEventHandlersAfterLoad() {
+        var toBeCanvasElements = document.getElementsByClassName("canvas-component");
+
+        for (var i = 0; i < toBeCanvasElements.length; i++) {
+            toBeCanvasElements[i].addEventListener("dragend", canvasObjectDrop, false);
+        }
+
+        this.addEventListener("canvas_object_selected", () => {
+            Swal.fire({
+                title: "Please Note",
+                text: "You can create event handlers easily for any interaction with the canvas",
+                icon: 'info'
+            });
+        })
+    }
+
+    function canvasObjectDrop(event) {
+        if (event.target === null || event.target.id === null) return;
+        if (!withinCanvas(document.elementFromPoint(event.clientX, event.clientY))) return;
+
+        let coordinates = dxCanvas.getCurrentMouseCoordinates(event);
+        let elementDataCaption = "";
+        if (typeof event.target.getAttribute("data-caption") !== "undefined") {
+            elementDataCaption = event.target.getAttribute("data-caption");
+        }
+        addObjectToCanvas(event.target.src, coordinates.cx, coordinates.cy, null, null, elementDataCaption);
+    }
+
+    function addObjectToCanvas(imagePathStr = "", x, y, objectUid = null, connections = null, ObjectCaption = "") {
+        if (imagePathStr === "") {
+
+            Swal.fire({
+                title: "Oops...",
+                text: "dropped object image not found",
+                icon: 'error'
+            });
+            return;
+        }
+
+        canvasDataObjArr = JSON.parse(dxCanvas.getCanvasJson(false));
+        circleTemplate.x = x;
+        circleTemplate.y = y;
+        if (objectUid !== null) {
+            circleTemplate.additionalOptions.uid = objectUid;
+        } else {
+            circleTemplate.additionalOptions.uid = dxCanvas.getNewCanvasId();
+        }
+
+        circleTemplate.additionalOptions.text = ObjectCaption;
+        circleTemplate.additionalOptions.fontSize = 12;
+
+
+        circleTemplate.additionalOptions.connections = connections ?? [];
+
+        circleTemplate.additionalOptions.image = imagePathStr;
+        // circleTemplate.additionalOptions.eventType = EventTypeId;
+
+        canvasDataObjArr.push(JSON.parse(JSON.stringify(circleTemplate)));
+        dxCanvas.updateCanvasFromJsonArray(canvasDataObjArr);
+    }
+
+    function  withinCanvas(element) {
+        if (element === null) {
+            return false;
+        }
+        return element.id === "dxCanvas";
+    }
+
+</script>
+</body>
+</html>
