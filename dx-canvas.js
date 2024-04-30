@@ -2108,6 +2108,7 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.contentHtmlElement.style.background = "#fff";
         this.contentHtmlElement.style.overflow = "scroll";
         this.contentHtmlElement.style.padding = this.contentPadding + "px";
+        window.dxCanvasRegisteredEventHandlers = [];
 
         this.expandedWidthReference = 0;
         this.expandedHeightReference = 0;
