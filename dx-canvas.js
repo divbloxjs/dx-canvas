@@ -53,6 +53,7 @@ class DivbloxCanvas {
         this.zoomCurrent = 0;
         this.rootPath = "/";
         this.connectionsCurveType = "curved";
+        window.dxCanvasRegisteredEventHandlers = [];
         
         if (typeof options["connectionsCurveType"] !== "undefined") {
             this.connectionsCurveType = options["connectionsCurveType"];
@@ -2108,7 +2109,6 @@ class DivbloxBaseHtmlCanvasObject extends DivbloxBaseCanvasObject {
         this.contentHtmlElement.style.background = "#fff";
         this.contentHtmlElement.style.overflow = "scroll";
         this.contentHtmlElement.style.padding = this.contentPadding + "px";
-        window.dxCanvasRegisteredEventHandlers = [];
 
         this.expandedWidthReference = 0;
         this.expandedHeightReference = 0;
